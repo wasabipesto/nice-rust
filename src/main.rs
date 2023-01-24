@@ -1,8 +1,8 @@
 use std::env;
 use std::collections::HashMap;
 
-//extern crate num_bigint;
-//use num_bigint::BigUint;
+extern crate num_bigint;
+use num_bigint::BigUint;
 
 extern crate reqwest;
 
@@ -15,7 +15,7 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 struct FieldClaim {
     search_id: u32,
     base: u32,
-    search_start: u128,
+    search_start: u128, // u128 will only get us to base 97
     search_end: u128,
     //claimed_time: String,
     //claimed_by: String,
@@ -31,44 +31,14 @@ struct FieldSubmit<'me> {
     near_misses: HashMap<u128,u32>
 }
 
-// represent a number in a specified base
-// returns a list of digits from MSD to LSD
-fn number_to_base(num: u128, b: u128) -> Vec<u128> {
-    let mut n = num;
-    let mut digits = Vec::new();
-    while n > 0 {
-        digits.push(n % b);
-        n /= b;
-    }
-    digits.reverse();
-    return digits;
-}
-
-#[test]
-fn test_number_to_base() {
-    assert_eq!(
-        number_to_base(256, 2), 
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0]
-    );
-    assert_eq!(
-        number_to_base(123, 8), 
-        vec![1, 7, 3]
-    );
-    assert_eq!(
-        number_to_base(15,16), 
-        vec![15]
-    );
-    assert_eq!(
-        number_to_base(100, 99), 
-        vec![1, 1]
-    );
-}
-
 // get the number of unique digits in the concatenated sqube of a specified number
 fn get_num_uniques(num: u128, base: u32) -> u32 {
-    let b = base as u128;
-    let mut sqube = number_to_base(num.pow(2), b);
-    sqube.append(&mut number_to_base(num.pow(3), b));
+    let mut sqube = BigUint::from(num)
+        .pow(2)
+        .to_radix_be(base);
+    sqube.append(&mut BigUint::from(num)
+        .pow(3)
+        .to_radix_be(base));
     sqube.sort();
     sqube.dedup();
     return sqube.len() as u32;
@@ -95,6 +65,14 @@ fn test_get_num_uniques() {
     assert_eq!(
         get_num_uniques(100, 99), 
         3
+    );
+    assert_eq!(
+        get_num_uniques(4134931983708, 40), 
+        39
+    );
+    assert_eq!(
+        get_num_uniques(173583337834150, 44), 
+        41
     );
 }
 
