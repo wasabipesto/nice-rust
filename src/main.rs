@@ -33,14 +33,23 @@ struct FieldSubmit<'me> {
 
 // get the number of unique digits in the concatenated sqube of a specified number
 fn get_num_uniques(num: u128, base: u32) -> u32 {
+
+    // sqube: the list of numbers in the quare and cube
+    // initialized here with just the square
     let mut sqube = BigUint::from(num)
         .pow(2)
         .to_radix_be(base);
+    
+    // concatenate in the cube values
     sqube.append(&mut BigUint::from(num)
         .pow(3)
         .to_radix_be(base));
+    
+    // sort & dedup to get just the unique values
     sqube.sort();
     sqube.dedup();
+
+    // return the length of the deduplicated list
     return sqube.len() as u32;
 }
 
@@ -78,25 +87,86 @@ fn test_get_num_uniques() {
 
 // get niceness data on a range of numbers and aggregate it
 fn search_range(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32,u32>) {
-    let near_misses_cutoff = base as f32 * 0.9; // minimum number of uniques to be counted
-    let mut near_misses: Vec<u128> = Vec::new(); // numbers with niceness (uniques/base) >= 0.9
+
+    // near_misses_cutoff: minimum number of uniques required for the nbumber to be recorded
+    let near_misses_cutoff: f32 = base as f32 * 0.9;
+
+    // near_misses: list of numbers with niceness ratio (uniques/base) above the cutoff
+    // pre-allocate memory for the maximum possible number of near misses (wastes memory but saves resizing)
+    let mut near_misses: Vec<u128> = Vec::with_capacity((n_end - n_start) as usize); 
     
-    let mut qty_uniques = HashMap::new(); // the quantity of numbers with each possible niceness
-    for b in 1..base+1 { // build dict initial values
+    // qty_uniques: the quantity of numbers with each possible niceness
+    let mut qty_uniques: HashMap<u32,u32> = HashMap::new(); 
+
+    // build the initial values (api expects it)
+    for b in 1..base+1 { 
         qty_uniques.insert(b,0);
     }
 
-    for num in n_start..n_end { // loop for all items in range
+    // loop for all items in range
+    for num in n_start..n_end { 
+
+        // get the number of uniques in the sqube
         let num_uniques: u32 = get_num_uniques(num, base);
-        if num_uniques as f32 > near_misses_cutoff { // check niceness
-            near_misses.push(num); // pretty nice, push to near_misses
+
+        // check if it's nice enough to record in near_misses
+        if num_uniques as f32 > near_misses_cutoff {
+            near_misses.push(num);
         }
-        qty_uniques.insert( // update qty_uniques distribution
+
+        // update our quantity distribution in qty_uniques
+        qty_uniques.insert(
             num_uniques, 
             qty_uniques.get(&num_uniques).copied().unwrap_or(0)+1
         );
     }
+
+    // return it as a tuple
     return (near_misses,qty_uniques)
+}
+
+#[test]
+fn test_search_range() {
+    assert_eq!(
+        search_range(47, 100, 10),
+        (
+            Vec::from([
+                69,
+            ]),
+            HashMap::from([
+                (1, 0),
+                (2, 0),
+                (3, 0),
+                (4, 4),
+                (5, 5),
+                (6, 15),
+                (7, 20),
+                (8, 7),
+                (9, 1),
+                (10, 1),
+            ])
+        )
+    );
+    assert_eq!(
+        search_range(144, 329, 12),
+        (
+            Vec::from([]),
+            HashMap::from([
+                (1, 0),
+                (2, 1),
+                (3, 1),
+                (4, 6),
+                (5, 15),
+                (6, 27),
+                (7, 55),
+                (8, 53),
+                (9, 24),
+                (10, 3),
+                (11, 0),
+                (12, 0),
+            ])
+        )
+    );
 }
 
 // get the claim data from the server
