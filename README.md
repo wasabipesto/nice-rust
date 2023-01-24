@@ -2,6 +2,10 @@
 
 > a client for distributed search of square-cube pandigitals, now with 100% more crab
 
+## Quickstart
+
+Grab the latest release from the (releases page)[https://github.com/wasabipesto/nice-rust/releases/latest] and run it with your username as the first and only argument. Optionally, use the username `offline_benchmark` for a prebuilt offline test of 1135123 items. This version should run on most linux builds, please open an issue if you have a problem running it.
+
 ## Why does this exist
 
 Square-cube pandigials ("nice" numbers) seem to be distributed pseudo-randomly. It doesn't take very long to check if a number is pandigital in a specific base, but even after we narrow the search range to numbers with the right amount of digits in their square and cube there's a lot of numbers to check. Even worse, it doesn't seem like there are any nice numbers between bases 10 and 140-ish, and it would take an impossibly long time to exhaustively search those at the higher end where the metaphorical ground is more fertile.
