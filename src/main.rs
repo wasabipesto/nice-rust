@@ -5,7 +5,6 @@ extern crate num_bigint;
 use num_bigint::BigUint;
 
 extern crate reqwest;
-
 extern crate serde;
 use serde::{Serialize, Deserialize};
 
@@ -45,7 +44,7 @@ fn get_num_uniques(num: u128, base: u32) -> u32 {
         .pow(3)
         .to_radix_be(base));
     
-    // sort & dedup to get just the unique values
+    // sort & dedup to get just the unique values (optimize?)
     sqube.sort();
     sqube.dedup();
 
@@ -89,7 +88,7 @@ fn test_get_num_uniques() {
 fn search_range(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32,u32>) {
 
     // near_misses_cutoff: minimum number of uniques required for the nbumber to be recorded
-    let near_misses_cutoff: f32 = base as f32 * 0.9;
+    let near_misses_cutoff: u32 = (base as f32 * 0.9) as u32;
 
     // near_misses: list of numbers with niceness ratio (uniques/base) above the cutoff
     // pre-allocate memory for the maximum possible number of near misses (wastes memory but saves resizing)
@@ -103,14 +102,14 @@ fn search_range(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32
         qty_uniques.insert(b,0);
     }
 
-    // loop for all items in range
+    // loop for all items in range (try to optimize anything in here)
     for num in n_start..n_end { 
 
         // get the number of uniques in the sqube
         let num_uniques: u32 = get_num_uniques(num, base);
 
         // check if it's nice enough to record in near_misses
-        if num_uniques as f32 > near_misses_cutoff {
+        if num_uniques > near_misses_cutoff {
             near_misses.push(num);
         }
 
@@ -169,22 +168,36 @@ fn test_search_range() {
     );
 }
 
-// get the claim data from the server
-fn get_claim_data(username: &str) -> FieldClaim {
-    let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + &username;
-    let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url).unwrap().json();
-    return claim_data.unwrap();
-}
-
 fn main() {
+
     // get username from first argument
     let mut args = env::args();
     let username = args.by_ref().skip(1).next().unwrap_or_else(|| {
         "anonymous".to_string()
     });
 
-    // get search data
-    let claim_data = get_claim_data(&username);
+    // get the claim data from the server
+    let claim_data = if username == "offline_benchmark" {
+        
+        // hacky way to do offline benchmarking - return a static field
+        FieldClaim {
+            search_id: 12,
+            base: 24,
+            search_start: 1625364,
+            search_end: 2760487,
+        }
+    
+    } else {
+        
+        // build an api GET request and append the username
+        let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + &username;
+        let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
+            .unwrap().json();
+        
+            // deserialize the json into a FieldClaim
+        claim_data.unwrap()
+    
+    };
     println!("{:?}", claim_data);
 
     // search for near_misses and qty_uniques
@@ -197,6 +210,7 @@ fn main() {
         claim_data.base,
     );
     
+    // convert the near_misses list into a map of {num, uniques}
     let mut near_miss_map: HashMap<u128,u32> = HashMap::new();
     for nm in near_misses.iter() {
         near_miss_map.insert(
@@ -218,11 +232,13 @@ fn main() {
     };
     println!("{:?}", submit_data);
     
-    // upload results
-    let client = reqwest::blocking::Client::new();
-    let _response = client.post("https://nice.wasabipesto.com/submit")
-        .json(&submit_data)
-        .send();
+    // upload results (only if not doing benchmarking)
+    if username != "offline_benchmark" {
+        let client = reqwest::blocking::Client::new();
+        let _response = client.post("https://nice.wasabipesto.com/submit")
+            .json(&submit_data)
+            .send();
+    }
 
     // show response (debug)
     //println!("{:?}", response);
