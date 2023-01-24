@@ -1,10 +1,13 @@
+use std::env;
+use std::collections::HashMap;
+
+//extern crate num_bigint;
+//use num_bigint::BigUint;
+
 extern crate reqwest;
 
 extern crate serde;
 use serde::{Serialize, Deserialize};
-
-use std::env;
-use std::collections::HashMap;
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -25,7 +28,6 @@ struct FieldSubmit<'me> {
     username: &'me str,
     client_version: &'static str,
     unique_count: HashMap<u32,u32>,
-    //near_misses: Vec<u128>
     near_misses: HashMap<u128,u32>
 }
 
@@ -42,6 +44,26 @@ fn number_to_base(num: u128, b: u128) -> Vec<u128> {
     return digits;
 }
 
+#[test]
+fn test_number_to_base() {
+    assert_eq!(
+        number_to_base(256, 2), 
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
+    assert_eq!(
+        number_to_base(123, 8), 
+        vec![1, 7, 3]
+    );
+    assert_eq!(
+        number_to_base(15,16), 
+        vec![15]
+    );
+    assert_eq!(
+        number_to_base(100, 99), 
+        vec![1, 1]
+    );
+}
+
 // get the number of unique digits in the concatenated sqube of a specified number
 fn get_num_uniques(num: u128, base: u32) -> u32 {
     let b = base as u128;
@@ -50,6 +72,30 @@ fn get_num_uniques(num: u128, base: u32) -> u32 {
     sqube.sort();
     sqube.dedup();
     return sqube.len() as u32;
+}
+
+#[test]
+fn test_get_num_uniques() {
+    assert_eq!(
+        get_num_uniques(69, 10), 
+        10
+    );
+    assert_eq!(
+        get_num_uniques(256, 2), 
+        2
+    );
+    assert_eq!(
+        get_num_uniques(123, 8), 
+        8
+    );
+    assert_eq!(
+        get_num_uniques(15, 16), 
+        5
+    );
+    assert_eq!(
+        get_num_uniques(100, 99), 
+        3
+    );
 }
 
 // get niceness data on a range of numbers and aggregate it
@@ -126,10 +172,10 @@ fn main() {
     
     // upload results
     let client = reqwest::blocking::Client::new();
-    let response = client.post("https://nice.wasabipesto.com/submit")
+    let _response = client.post("https://nice.wasabipesto.com/submit")
         .json(&submit_data)
         .send();
 
     // show response (debug)
-    println!("{:?}", response);
+    //println!("{:?}", response);
 }
