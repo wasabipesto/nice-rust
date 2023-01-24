@@ -70,7 +70,12 @@ First and foremost, you can run a search node! It doesn't have to be running 24/
 
 If you're interested, you can download this souce code and make some tweaks. See if you can reduce the search time, run a node for a while, and see how you stack up. Implement it in another language if you'd like!
 
-## Notes
+## Performance
 
-- Each number is only valid in a single base, which means we aren't wasting any time squaring and cubing numbers multiple times.
-- I may increase or decrease the claim expiration time after seeing how long it takes typical clients to complete a full search.
+The main places for optimization seem to be:
+
+- Sorting the digits in the square-cube list, which is required for deduplication in getting the number of unique values. I tried using a HashSet instead, but inserting everything in the set took even longer. A good implementation could cut this down though.
+- Taking the input number to the second/third power, which is obviously required and probably cannot be optimized without a massive lookup table. And we never have to do it more than once for any number, so we can't cache results.
+- Converting numbers to the desired base, which is again necessary and also abstracted away by `num-bigint`. I don't think I can make this any faster.
+
+![Flamegraph](./flamegraph.svg)
