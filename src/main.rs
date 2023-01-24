@@ -44,8 +44,8 @@ fn get_num_uniques(num: u128, base: u32) -> u32 {
         .pow(3)
         .to_radix_be(base));
     
-    // sort & dedup to get just the unique values (optimize?)
-    sqube.sort();
+    // sort & dedup to get just the unique values
+    sqube.sort_unstable();
     sqube.dedup();
 
     // return the length of the deduplicated list
