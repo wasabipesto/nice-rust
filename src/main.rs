@@ -39,7 +39,7 @@ fn get_num_uniques(num: u128, base: u32) -> u32 {
         .pow(2)
         .to_radix_be(base);
     
-    // concatenate in the cube values
+    // apppend the cube values
     sqube.append(&mut BigUint::from(num)
         .pow(3)
         .to_radix_be(base));
