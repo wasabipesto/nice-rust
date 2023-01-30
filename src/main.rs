@@ -63,16 +63,16 @@ fn get_field_benchmark() -> FieldClaim {
     };
 }
 
-// get a field from the server - default type
-fn get_field_default(username: &str) -> FieldClaim {
+// get a field from the server - detailed
+fn get_field_detailed(username: &str) -> FieldClaim {
     let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + username;
     let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
         .unwrap().json();
     claim_data.unwrap()
 }
 
-// submit field data to the server - default type
-fn submit_field_default(submit_data: FieldSubmit) {
+// submit field data to the server - detailed
+fn submit_field_detailed(submit_data: FieldSubmit) {
     let client = reqwest::blocking::Client::new();
     let _response = client.post("https://nice.wasabipesto.com/submit")
         .json(&submit_data)
@@ -223,7 +223,7 @@ fn main() {
     let cli = Cli::parse();
 
     // get the field to search
-    let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_default(&cli.username) };
+    let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_detailed(&cli.username) };
 
     // print debug information
     println!("{:?}", claim_data);
@@ -262,5 +262,5 @@ fn main() {
     println!("{:?}", submit_data);
     
     // upload results (only if not doing benchmarking)
-    if ! cli.benchmark { submit_field_default(submit_data) }
+    if ! cli.benchmark { submit_field_detailed(submit_data) }
 }
