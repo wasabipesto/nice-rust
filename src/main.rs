@@ -16,10 +16,18 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    #[arg(short, long, default_value="anonymous")]
+    #[arg(
+        short, 
+        long, 
+        default_value="anonymous",
+        help="the username to send alongside your contribution"
+    )]
     username: String,
 
-    #[arg(long)]
+    #[arg(
+        long,
+        help="run an offline benchmark"
+    )]
     benchmark: bool,
 }
 
