@@ -1,6 +1,9 @@
 use std::env;
 use std::collections::HashMap;
 
+extern crate clap;
+use clap::Parser;
+
 extern crate num_bigint;
 use num_bigint::BigUint;
 
@@ -9,6 +12,16 @@ extern crate serde;
 use serde::{Serialize, Deserialize};
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, default_value="anonymous")]
+    username: String,
+
+    #[arg(long)]
+    benchmark: bool,
+}
 
 #[derive(Debug, Deserialize)]
 struct FieldClaim {
@@ -170,14 +183,11 @@ fn test_search_range() {
 
 fn main() {
 
-    // get username from first argument
-    let mut args = env::args();
-    let username = args.by_ref().skip(1).next().unwrap_or_else(|| {
-        "anonymous".to_string()
-    });
+    // parse args from command line
+    let cli = Cli::parse();
 
     // get the claim data from the server
-    let claim_data = if username == "offline_benchmark" {
+    let claim_data = if cli.benchmark {
         
         // hacky way to do offline benchmarking - return a static field
         FieldClaim {
@@ -190,7 +200,7 @@ fn main() {
     } else {
         
         // build an api GET request and append the username
-        let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + &username;
+        let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + &cli.username;
         let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
             .unwrap().json();
         
@@ -225,7 +235,7 @@ fn main() {
     // compile results
     let submit_data = FieldSubmit { 
         search_id: claim_data.search_id,
-        username: &username,
+        username: &cli.username,
         client_version: &CLIENT_VERSION,
         unique_count: qty_uniques,
         near_misses: near_miss_map
@@ -233,7 +243,7 @@ fn main() {
     println!("{:?}", submit_data);
     
     // upload results (only if not doing benchmarking)
-    if username != "offline_benchmark" {
+    if ! cli.benchmark {
         let client = reqwest::blocking::Client::new();
         let _response = client.post("https://nice.wasabipesto.com/submit")
             .json(&submit_data)
