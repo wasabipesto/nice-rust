@@ -51,6 +51,34 @@ struct FieldSubmit<'me> {
     near_misses: HashMap<u128,u32>
 }
 
+// get a static field for benchmarking
+// returns the entirety of base 24, which takes a few seconds to run
+// TODO: add additional benchmark ranges
+fn get_field_benchmark() -> FieldClaim {
+    return FieldClaim {
+        search_id: 12,
+        base: 24,
+        search_start: 1625364,
+        search_end: 2760487,
+    };
+}
+
+// get a field from the server - default type
+fn get_field_default(username: &str) -> FieldClaim {
+    let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + username;
+    let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
+        .unwrap().json();
+    claim_data.unwrap()
+}
+
+// submit field data to the server - default type
+fn submit_field_default(submit_data: FieldSubmit) {
+    let client = reqwest::blocking::Client::new();
+    let _response = client.post("https://nice.wasabipesto.com/submit")
+        .json(&submit_data)
+        .send();
+}
+
 // get the number of unique digits in the concatenated sqube of a specified number
 fn get_num_uniques(num: u128, base: u32) -> u32 {
 
@@ -105,8 +133,8 @@ fn test_get_num_uniques() {
     );
 }
 
-// get niceness data on a range of numbers and aggregate it
-fn search_range(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32,u32>) {
+// get detailed niceness data on a range of numbers and aggregate it
+fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32,u32>) {
 
     // near_misses_cutoff: minimum number of uniques required for the nbumber to be recorded
     let near_misses_cutoff: u32 = (base as f32 * 0.9) as u32;
@@ -146,9 +174,9 @@ fn search_range(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32
 }
 
 #[test]
-fn test_search_range() {
+fn test_process_range_detailed() {
     assert_eq!(
-        search_range(47, 100, 10),
+        process_range_detailed(47, 100, 10),
         (
             Vec::from([
                 69,
@@ -168,7 +196,7 @@ fn test_search_range() {
         )
     );
     assert_eq!(
-        search_range(144, 329, 12),
+        process_range_detailed(144, 329, 12),
         (
             Vec::from([]),
             HashMap::from([
@@ -189,44 +217,12 @@ fn test_search_range() {
     );
 }
 
-// get a static field for benchmarking
-fn get_field_benchmark() -> FieldClaim {
-
-    // returns the entirety of base 24, which takes a few seconds to run
-    return FieldClaim {
-        search_id: 12,
-        base: 24,
-        search_start: 1625364,
-        search_end: 2760487,
-    };
-}
-
-// get a field from the server
-fn get_field_default(username: &str) -> FieldClaim {
-
-    // build an api GET request and append the username
-    let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + username;
-    let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
-        .unwrap().json();
-
-    // deserialize the json into a FieldClaim
-    claim_data.unwrap()
-}
-
-// submit field data to the server
-fn submit_field_default(submit_data: FieldSubmit) {
-    let client = reqwest::blocking::Client::new();
-    let _response = client.post("https://nice.wasabipesto.com/submit")
-        .json(&submit_data)
-        .send();
-}
-
 fn main() {
 
     // parse args from command line
     let cli = Cli::parse();
 
-    // get the claim data from the server
+    // get the field to search
     let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_default(&cli.username) };
 
     // print debug information
@@ -236,7 +232,7 @@ fn main() {
     let (
         near_misses, 
         qty_uniques
-    ) = search_range(
+    ) = process_range_detailed(
         claim_data.search_start,
         claim_data.search_end,
         claim_data.base,
