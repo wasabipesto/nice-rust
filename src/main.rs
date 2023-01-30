@@ -1,6 +1,9 @@
 use std::env;
 use std::collections::HashMap;
 
+extern crate clap;
+use clap::Parser;
+
 extern crate num_bigint;
 use num_bigint::BigUint;
 
@@ -9,6 +12,24 @@ extern crate serde;
 use serde::{Serialize, Deserialize};
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[arg(
+        short, 
+        long, 
+        default_value="anonymous",
+        help="the username to send alongside your contribution"
+    )]
+    username: String,
+
+    #[arg(
+        long,
+        help="run an offline benchmark"
+    )]
+    benchmark: bool,
+}
 
 #[derive(Debug, Deserialize)]
 struct FieldClaim {
@@ -30,6 +51,34 @@ struct FieldSubmit<'me> {
     near_misses: HashMap<u128,u32>
 }
 
+// get a static field for benchmarking
+// returns the entirety of base 24, which takes a few seconds to run
+// TODO: add additional benchmark ranges
+fn get_field_benchmark() -> FieldClaim {
+    return FieldClaim {
+        search_id: 12,
+        base: 24,
+        search_start: 1625364,
+        search_end: 2760487,
+    };
+}
+
+// get a field from the server - detailed
+fn get_field_detailed(username: &str) -> FieldClaim {
+    let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + username;
+    let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
+        .unwrap().json();
+    claim_data.unwrap()
+}
+
+// submit field data to the server - detailed
+fn submit_field_detailed(submit_data: FieldSubmit) {
+    let client = reqwest::blocking::Client::new();
+    let _response = client.post("https://nice.wasabipesto.com/submit")
+        .json(&submit_data)
+        .send();
+}
+
 // get the number of unique digits in the concatenated sqube of a specified number
 fn get_num_uniques(num: u128, base: u32) -> u32 {
 
@@ -39,7 +88,7 @@ fn get_num_uniques(num: u128, base: u32) -> u32 {
         .pow(2)
         .to_radix_be(base);
     
-    // concatenate in the cube values
+    // apppend the cube values
     sqube.append(&mut BigUint::from(num)
         .pow(3)
         .to_radix_be(base));
@@ -84,8 +133,8 @@ fn test_get_num_uniques() {
     );
 }
 
-// get niceness data on a range of numbers and aggregate it
-fn search_range(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32,u32>) {
+// get detailed niceness data on a range of numbers and aggregate it
+fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32,u32>) {
 
     // near_misses_cutoff: minimum number of uniques required for the nbumber to be recorded
     let near_misses_cutoff: u32 = (base as f32 * 0.9) as u32;
@@ -125,9 +174,9 @@ fn search_range(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32
 }
 
 #[test]
-fn test_search_range() {
+fn test_process_range_detailed() {
     assert_eq!(
-        search_range(47, 100, 10),
+        process_range_detailed(47, 100, 10),
         (
             Vec::from([
                 69,
@@ -147,7 +196,7 @@ fn test_search_range() {
         )
     );
     assert_eq!(
-        search_range(144, 329, 12),
+        process_range_detailed(144, 329, 12),
         (
             Vec::from([]),
             HashMap::from([
@@ -170,41 +219,20 @@ fn test_search_range() {
 
 fn main() {
 
-    // get username from first argument
-    let mut args = env::args();
-    let username = args.by_ref().skip(1).next().unwrap_or_else(|| {
-        "anonymous".to_string()
-    });
+    // parse args from command line
+    let cli = Cli::parse();
 
-    // get the claim data from the server
-    let claim_data = if username == "offline_benchmark" {
-        
-        // hacky way to do offline benchmarking - return a static field
-        FieldClaim {
-            search_id: 12,
-            base: 24,
-            search_start: 1625364,
-            search_end: 2760487,
-        }
-    
-    } else {
-        
-        // build an api GET request and append the username
-        let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + &username;
-        let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
-            .unwrap().json();
-        
-            // deserialize the json into a FieldClaim
-        claim_data.unwrap()
-    
-    };
+    // get the field to search
+    let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_detailed(&cli.username) };
+
+    // print debug information
     println!("{:?}", claim_data);
 
     // search for near_misses and qty_uniques
     let (
         near_misses, 
         qty_uniques
-    ) = search_range(
+    ) = process_range_detailed(
         claim_data.search_start,
         claim_data.search_end,
         claim_data.base,
@@ -225,21 +253,14 @@ fn main() {
     // compile results
     let submit_data = FieldSubmit { 
         search_id: claim_data.search_id,
-        username: &username,
+        username: &cli.username,
         client_version: &CLIENT_VERSION,
         unique_count: qty_uniques,
         near_misses: near_miss_map
     };
+    // print debug information
     println!("{:?}", submit_data);
     
     // upload results (only if not doing benchmarking)
-    if username != "offline_benchmark" {
-        let client = reqwest::blocking::Client::new();
-        let _response = client.post("https://nice.wasabipesto.com/submit")
-            .json(&submit_data)
-            .send();
-    }
-
-    // show response (debug)
-    //println!("{:?}", response);
+    if ! cli.benchmark { submit_field_detailed(submit_data) }
 }
