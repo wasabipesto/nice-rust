@@ -2,7 +2,7 @@ use std::env;
 use std::collections::HashMap;
 
 extern crate clap;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 extern crate num_bigint;
 use num_bigint::BigUint;
@@ -16,19 +16,25 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    #[arg(
-        short, 
-        long, 
-        default_value="anonymous",
-        help="the username to send alongside your contribution"
-    )]
+    /// the username to send alongside your contribution
+    #[arg(short, long, default_value="anonymous")]
     username: String,
 
-    #[arg(
-        long,
-        help="run an offline benchmark"
-    )]
+    /// run an offline benchmark
+    #[arg(long)]
     benchmark: bool,
+
+    /// what mode to run the program in
+    #[arg(value_enum)]
+    mode: ProcessMode,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum ProcessMode {
+    /// process detailed information about each value
+    Detailed,
+    /// only scan for nice numbers
+    NiceOnly,
 }
 
 #[derive(Debug, Deserialize)]
@@ -43,12 +49,20 @@ struct FieldClaim {
 }
 
 #[derive(Debug, Serialize)]
-struct FieldSubmit<'me> {
+struct FieldSubmitDetailed<'me> {
     search_id: u32,
     username: &'me str,
     client_version: &'static str,
     unique_count: HashMap<u32,u32>,
     near_misses: HashMap<u128,u32>
+}
+
+#[derive(Debug, Serialize)]
+struct FieldSubmitNiceOnly<'me> {
+    search_id: u32,
+    username: &'me str,
+    client_version: &'static str,
+    nice_list: Vec<u128>
 }
 
 // get a static field for benchmarking
@@ -72,9 +86,25 @@ fn get_field_detailed(username: &str) -> FieldClaim {
 }
 
 // submit field data to the server - detailed
-fn submit_field_detailed(submit_data: FieldSubmit) {
+fn submit_field_detailed(submit_data: FieldSubmitDetailed) {
     let client = reqwest::blocking::Client::new();
     let _response = client.post("https://nice.wasabipesto.com/submit")
+        .json(&submit_data)
+        .send();
+}
+
+// get a field from the server - nice only
+fn get_field_niceonly(username: &str) -> FieldClaim {
+    let query_url = "https://nice.wasabipesto.com/claim/niceonly?username=".to_owned() + username;
+    let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
+        .unwrap().json();
+    claim_data.unwrap()
+}
+
+// submit field data to the server - nice only
+fn submit_field_niceonly(submit_data: FieldSubmitNiceOnly) {
+    let client = reqwest::blocking::Client::new();
+    let _response = client.post("https://nice.wasabipesto.com/submit/niceonly")
         .json(&submit_data)
         .send();
 }
@@ -130,6 +160,35 @@ fn test_get_num_uniques() {
     assert_eq!(
         get_num_uniques(173583337834150, 44), 
         41
+    );
+}
+
+// check if the given number is nice in the selected base
+fn check_is_nice(num: u128, base: u32) -> bool {
+    if get_num_uniques(num, base) == base { return true; } else { return false; }
+}
+
+#[test]
+fn test_check_is_nice() {
+    assert_eq!(
+        check_is_nice(69, 10), 
+        true
+    );
+    assert_eq!(
+        check_is_nice(15, 16), 
+        false
+    );
+    assert_eq!(
+        check_is_nice(100, 99), 
+        false
+    );
+    assert_eq!(
+        check_is_nice(4134931983708, 40), 
+        false
+    );
+    assert_eq!(
+        check_is_nice(173583337834150, 44), 
+        false
     );
 }
 
@@ -217,11 +276,37 @@ fn test_process_range_detailed() {
     );
 }
 
-fn main() {
+// check if *any* items in the range are nice
+fn process_range_niceonly(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
+    
+    // complete list of 100% nice numbers
+    let mut nice_list: Vec<u128> = Vec::new();
 
-    // parse args from command line
-    let cli = Cli::parse();
+    // loop for all items in range (try to optimize anything in here)
+    for num in n_start..n_end { 
 
+        // is it nice?
+        if check_is_nice(num, base) {
+            nice_list.push(num);
+        }
+    }
+
+    return nice_list;
+}
+
+#[test]
+fn test_process_range_niceonly() {
+    assert_eq!(
+        process_range_niceonly(47, 100, 10),
+        Vec::from([69])
+    );
+    assert_eq!(
+        process_range_niceonly(144, 329, 12),
+        Vec::from([]),
+    );
+}
+
+fn main_detailed(cli: Cli) {
     // get the field to search
     let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_detailed(&cli.username) };
 
@@ -237,7 +322,7 @@ fn main() {
         claim_data.search_end,
         claim_data.base,
     );
-    
+
     // convert the near_misses list into a map of {num, uniques}
     let mut near_miss_map: HashMap<u128,u32> = HashMap::new();
     for nm in near_misses.iter() {
@@ -251,7 +336,7 @@ fn main() {
     }
 
     // compile results
-    let submit_data = FieldSubmit { 
+    let submit_data = FieldSubmitDetailed { 
         search_id: claim_data.search_id,
         username: &cli.username,
         client_version: &CLIENT_VERSION,
@@ -260,7 +345,49 @@ fn main() {
     };
     // print debug information
     println!("{:?}", submit_data);
-    
+
     // upload results (only if not doing benchmarking)
     if ! cli.benchmark { submit_field_detailed(submit_data) }
+}
+
+fn main_niceonly(cli: Cli) {
+    // get the field to search
+    let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_niceonly(&cli.username) };
+
+    // print debug information
+    println!("{:?}", claim_data);
+
+    // search for nice numbers
+    let nice_list = process_range_niceonly(
+        claim_data.search_start,
+        claim_data.search_end,
+        claim_data.base,
+    );
+
+    // compile results
+    let submit_data = FieldSubmitNiceOnly { 
+        search_id: claim_data.search_id,
+        username: &cli.username,
+        client_version: &CLIENT_VERSION,
+        nice_list: nice_list
+    };
+    // print debug information
+    println!("{:?}", submit_data);
+
+    // upload results (only if not doing benchmarking)
+    if ! cli.benchmark { submit_field_niceonly(submit_data) }
+}
+
+fn main() {
+
+    // parse args from command line
+    let cli = Cli::parse();
+
+    // select the process to follow
+    match cli.mode {
+        ProcessMode::Detailed => main_detailed(cli),
+        ProcessMode::NiceOnly => main_niceonly(cli),
+        //_ => println!("Ain't special"),
+    }
+    
 }
