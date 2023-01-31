@@ -4,7 +4,7 @@
 
 ## Quickstart
 
-Grab the latest release from the [releases page](https://github.com/wasabipesto/nice-rust/releases/latest) and run it with your username as the first and only argument. Optionally, use the username `offline_benchmark` for a prebuilt offline test of 1135123 items. This version should run on most linux builds, please open an issue if you have a problem running it.
+Grab the latest release from the [releases page](https://github.com/wasabipesto/nice-rust/releases/latest) and include your username with the `--username` option. Optionally, use the flag `--benchmark` for a prebuilt offline benchmarking test. This version should run on most linux builds, please open an issue if you have a problem running it.
 
 ## Why does this exist
 
