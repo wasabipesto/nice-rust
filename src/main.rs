@@ -89,10 +89,10 @@ fn submit_field_detailed(submit_data: FieldSubmit) {
 }
 
 // get the number of unique digits in the concatenated sqube of a specified number
-fn get_num_uniques(num: Natural, base: u32) -> u32 {
+fn get_num_uniques(num: Natural, base: u32, digits_indicator: &mut Vec<bool>) -> u32 {
 
-    // create a boolean array that represents all possible digits
-    let mut digits_indicator: Vec<bool> = vec![false; base as usize];
+    // clear the array
+    digits_indicator.fill(false);
 
     // square the number
     let squared = (&num).pow(2);
@@ -113,7 +113,7 @@ fn get_num_uniques(num: Natural, base: u32) -> u32 {
     // output the number of unique digits
     let mut unique_digits = 0;
     for digit in digits_indicator {
-        if digit {unique_digits += 1}
+        if *digit {unique_digits += 1}
     }
     return unique_digits
 }
@@ -121,31 +121,31 @@ fn get_num_uniques(num: Natural, base: u32) -> u32 {
 #[test]
 fn test_get_num_uniques() {
     assert_eq!(
-        get_num_uniques(Natural::from(69 as u128), 10), 
+        get_num_uniques(Natural::from(69 as u128), 10, &mut vec![false; 10 as usize]), 
         10
     );
     assert_eq!(
-        get_num_uniques(Natural::from(256 as u128), 2), 
+        get_num_uniques(Natural::from(256 as u128), 2, &mut vec![false; 2 as usize]), 
         2
     );
     assert_eq!(
-        get_num_uniques(Natural::from(123 as u128), 8), 
+        get_num_uniques(Natural::from(123 as u128), 8, &mut vec![false; 8 as usize]), 
         8
     );
     assert_eq!(
-        get_num_uniques(Natural::from(15 as u128), 16), 
+        get_num_uniques(Natural::from(15 as u128), 16, &mut vec![false; 16 as usize]), 
         5
     );
     assert_eq!(
-        get_num_uniques(Natural::from(100 as u128), 99), 
+        get_num_uniques(Natural::from(100 as u128), 99, &mut vec![false; 99 as usize]), 
         3
     );
     assert_eq!(
-        get_num_uniques(Natural::from(4134931983708 as u128), 40), 
+        get_num_uniques(Natural::from(4134931983708 as u128), 40, &mut vec![false; 40 as usize]), 
         39
     );
     assert_eq!(
-        get_num_uniques(Natural::from(173583337834150 as u128), 44), 
+        get_num_uniques(Natural::from(173583337834150 as u128), 44, &mut vec![false; 44 as usize]), 
         41
     );
 }
@@ -163,11 +163,14 @@ fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,H
     // qty_uniques: the quantity of numbers with each possible niceness
     let mut qty_uniques: Vec<u32> = vec![0; base as usize];
 
+    // create a boolean array that represents all possible digits
+    let mut digits_indicator: Vec<bool> = vec![false; base as usize];
+
     // loop for all items in range (try to optimize anything in here)
     for num in n_start..n_end { 
 
         // get the number of uniques in the sqube
-        let num_uniques: u32 = get_num_uniques(Natural::from(num), base);
+        let num_uniques: u32 = get_num_uniques(Natural::from(num), base, &mut digits_indicator);
 
         // check if it's nice enough to record in near_misses
         if num_uniques > near_misses_cutoff {
@@ -266,7 +269,8 @@ fn main() {
             *nm,
             get_num_uniques(
                 Natural::from(*nm),
-                claim_data.base
+                claim_data.base,
+                &mut vec![false; claim_data.base as usize]
             )
         );
     }
