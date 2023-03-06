@@ -43,9 +43,11 @@ struct Cli {
 
 #[derive(Debug, Deserialize)]
 struct FieldClaim {
-    search_id: u32,
+    id: u32,
     base: u32,
-    search_start: u128, // u128 will only get us to base 97
+    #[serde(deserialize_with = "deserialize_stringified_number")]
+    search_start: u128,
+    #[serde(deserialize_with = "deserialize_stringified_number")]
     search_end: u128,
     //claimed_time: String,
     //claimed_by: String,
@@ -54,7 +56,7 @@ struct FieldClaim {
 
 #[derive(Debug, Serialize)]
 struct FieldSubmit<'me> {
-    search_id: u32,
+    id: u32,
     username: &'me str,
     client_version: &'static str,
     unique_count: HashMap<u32,u32>,
@@ -65,16 +67,31 @@ struct FieldSubmit<'me> {
 // TODO: add additional benchmark ranges
 fn get_field_benchmark() -> FieldClaim {
     return FieldClaim {
-        search_id: 15,
+        id: 15,
         base: 28,
         search_start: 52260814,
         search_end: 91068707,
     };
 }
 
+// custom deserialization for stringified bigints
+// TODO: deserialize into naturals directly
+fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<u128, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    let s = s.trim_matches('"');
+    if let Ok(number) = s.parse() {
+        Ok(number)
+    } else {
+        Err(serde::de::Error::custom(format!("invalid number: {}", s)))
+    }
+}
+
 // get a field from the server - detailed
 fn get_field_detailed(username: &str) -> FieldClaim {
-    let query_url = "https://nice.wasabipesto.com/claim?username=".to_owned() + username;
+    let query_url = "http://localhost:8788/api/claim/detailed?username=".to_owned() + username;
     let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
         .unwrap().json();
     claim_data.unwrap()
@@ -83,9 +100,27 @@ fn get_field_detailed(username: &str) -> FieldClaim {
 // submit field data to the server - detailed
 fn submit_field_detailed(submit_data: FieldSubmit) {
     let client = reqwest::blocking::Client::new();
-    let _response = client.post("https://nice.wasabipesto.com/submit")
+    let response = client
+        .post("http://localhost:8788/api/submit/detailed")
         .json(&submit_data)
         .send();
+
+    match response {
+        Ok(res) => {
+            if res.status().is_success() {
+                // The request was successful, no need to handle the response body.
+                return;
+            }
+            match res.text() {
+                Ok(msg) => println!("Server returned an error: {}", msg),
+                Err(_) => println!("Server returned an error."),
+            }
+        }
+        Err(e) => {
+            // Handle network errors.
+            println!("Network error: {}", e);
+        }
+    }
 }
 
 // get the number of unique digits in the concatenated sqube of a specified number
@@ -153,7 +188,7 @@ fn test_get_num_uniques() {
 // get detailed niceness data on a range of numbers and aggregate it
 fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>,HashMap<u32,u32>) {
 
-    // near_misses_cutoff: minimum number of uniques required for the nbumber to be recorded
+    // near_misses_cutoff: minimum number of uniques required for the number to be recorded
     let near_misses_cutoff: u32 = (base as f32 * 0.9) as u32;
 
     // near_misses: list of numbers with niceness ratio (uniques/base) above the cutoff
@@ -273,7 +308,7 @@ fn main() {
 
     // compile results
     let submit_data = FieldSubmit { 
-        search_id: claim_data.search_id,
+        id: claim_data.id,
         username: &cli.username,
         client_version: &CLIENT_VERSION,
         unique_count: qty_uniques,
