@@ -28,6 +28,13 @@ struct Cli {
     username: String,
 
     #[arg(
+        long, 
+        default_value="https://nicenumbers.pages.dev/api",
+        help="the base API URL to connect to"
+    )]
+    api_base: String,
+
+    #[arg(
         long,
         help="run an offline benchmark"
     )]
@@ -90,18 +97,18 @@ where
 }
 
 // get a field from the server - detailed
-fn get_field_detailed(username: &str) -> FieldClaim {
-    let query_url = "http://localhost:8788/api/claim/detailed?username=".to_owned() + username;
+fn get_field_detailed(api_base: &str, username: &str) -> FieldClaim {
+    let query_url = api_base.to_owned() + &"/claim/detailed?username=".to_owned() + username;
     let claim_data: Result<FieldClaim, reqwest::Error> = reqwest::blocking::get(query_url)
         .unwrap().json();
     claim_data.unwrap()
 }
 
 // submit field data to the server - detailed
-fn submit_field_detailed(submit_data: FieldSubmit) {
+fn submit_field_detailed(api_base: &str, submit_data: FieldSubmit) {
     let client = reqwest::blocking::Client::new();
     let response = client
-        .post("http://localhost:8788/api/submit/detailed")
+        .post(api_base.to_owned() + &"/submit/detailed")
         .json(&submit_data)
         .send();
 
@@ -273,7 +280,7 @@ fn main() {
     let cli = Cli::parse();
 
     // get the field to search
-    let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_detailed(&cli.username) };
+    let claim_data = if cli.benchmark { get_field_benchmark() } else { get_field_detailed(&cli.api_base, &cli.username) };
 
     // print debug information
     if ! cli.quiet { println!("{:?}", claim_data); }
@@ -318,5 +325,5 @@ fn main() {
     if ! cli.quiet { println!("{:?}", submit_data); }
     
     // upload results (only if not doing benchmarking)
-    if ! cli.benchmark { submit_field_detailed(submit_data) }
+    if ! cli.benchmark { submit_field_detailed(&cli.api_base, submit_data) }
 }
