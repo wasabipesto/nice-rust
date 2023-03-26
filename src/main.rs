@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env;
 
 extern crate clap;
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 
 extern crate malachite;
 use malachite::num::arithmetic::traits::Pow;
@@ -18,7 +18,31 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
 struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+
+    #[arg(short, long, help = "suppress some output")]
+    quiet: bool,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Detailed(APIArgs),
+    Niceonly(APIArgs),
+    Benchmark(BenchmarkArgs),
+}
+
+#[derive(Args)]
+struct APIArgs {
+    #[arg(
+        long,
+        default_value = "https://nicenumbers.net/api",
+        help = "the base API URL to connect to"
+    )]
+    api_url: String,
+
     #[arg(
         short,
         long,
@@ -27,27 +51,17 @@ struct Cli {
     )]
     username: String,
 
-    #[arg(
-        long,
-        default_value = "https://nicenumbers.net/api",
-        help = "the base API URL to connect to"
-    )]
-    api_url: String,
-
     #[arg(short, long, help = "request a range in a specific base")]
     base: Option<u32>,
 
     #[arg(short = 'r', long, help = "request a differently-sized range")]
     max_range: Option<u128>,
+}
 
-    #[arg(short, long, help = "only look for 100% nice numbers")]
-    niceonly: bool,
-
-    #[arg(long, help = "run an offline benchmark")]
-    benchmark: bool,
-
-    #[arg(short, long, help = "suppress some output")]
-    quiet: bool,
+#[derive(Args)]
+struct BenchmarkArgs {
+    #[arg(short = 'r', long, help = "request a differently-sized range")]
+    max_range: Option<u128>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,12 +75,20 @@ struct FieldClaim {
 }
 
 #[derive(Debug, Serialize)]
-struct FieldSubmit<'me> {
+struct FieldSubmitDetailed<'me> {
     id: u32,
     username: &'me str,
     client_version: &'static str,
     unique_count: HashMap<u32, u32>,
     near_misses: HashMap<u128, u32>,
+}
+
+#[derive(Debug, Serialize)]
+struct FieldSubmitNiceonly<'me> {
+    id: u32,
+    username: &'me str,
+    client_version: &'static str,
+    nice_list: Vec<u128>,
 }
 
 // get a static field for benchmarking
@@ -114,11 +136,56 @@ fn get_field_detailed(
     claim_data.unwrap()
 }
 
+// get a field from the server - nice only
+fn get_field_niceonly(
+    api_url: &str,
+    username: &str,
+    base: &Option<u32>,
+    max_range: &Option<u128>,
+) -> FieldClaim {
+    let mut query_url = api_url.to_owned() + &"/claim/niceonly?username=".to_owned() + username;
+    if let Some(base_val) = base {
+        query_url += &("&base=".to_owned() + &base_val.to_string());
+    }
+    if let Some(max_range_val) = max_range {
+        query_url += &("&max_range=".to_owned() + &max_range_val.to_string());
+    }
+    let claim_data: Result<FieldClaim, reqwest::Error> =
+        reqwest::blocking::get(query_url).unwrap().json();
+    claim_data.unwrap()
+}
+
 // submit field data to the server - detailed
-fn submit_field_detailed(api_url: &str, submit_data: FieldSubmit) {
+fn submit_field_detailed(api_url: &str, submit_data: FieldSubmitDetailed) {
     let client = reqwest::blocking::Client::new();
     let response = client
         .post(api_url.to_owned() + &"/submit/detailed")
+        .json(&submit_data)
+        .send();
+
+    match response {
+        Ok(res) => {
+            if res.status().is_success() {
+                // The request was successful, no need to handle the response body.
+                return;
+            }
+            match res.text() {
+                Ok(msg) => println!("Server returned an error: {}", msg),
+                Err(_) => println!("Server returned an error."),
+            }
+        }
+        Err(e) => {
+            // Handle network errors.
+            println!("Network error: {}", e);
+        }
+    }
+}
+
+// submit field data to the server - nice only
+fn submit_field_niceonly(api_url: &str, submit_data: FieldSubmitNiceonly) {
+    let client = reqwest::blocking::Client::new();
+    let response = client
+        .post(api_url.to_owned() + &"/submit/niceonly")
         .json(&submit_data)
         .send();
 
@@ -266,58 +333,110 @@ fn test_process_range_detailed() {
     );
 }
 
+fn process_range_niceonly(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
+    // nice_list: list of numbers with niceness ratio (uniques/base) above the cutoff
+    let mut nice_list: Vec<u128> = vec![];
+
+    // loop for all items in range (try to optimize anything in here)
+    for num in n_start..n_end {
+        // get the number of uniques in the sqube
+        let num_uniques: u32 = get_num_uniques(Natural::from(num), base);
+
+        // check if it's 100% nice
+        if num_uniques == base {
+            nice_list.push(num);
+        }
+    }
+
+    // return the list
+    return nice_list;
+}
+
 fn main() {
     // parse args from command line
     let cli = Cli::parse();
 
-    // get the field to search
-    let claim_data = if cli.benchmark {
-        get_field_benchmark()
-    } else {
-        get_field_detailed(&cli.api_url, &cli.username, &cli.base, &cli.max_range)
-    };
-
-    // print debug information
-    if !cli.quiet {
-        println!("{:?}", claim_data);
-    }
-
-    // start a timer
-    let before = Instant::now();
-
-    // search for near_misses and qty_uniques
-    let (near_misses, qty_uniques) = process_range_detailed(
-        claim_data.search_start,
-        claim_data.search_end,
-        claim_data.base,
-    );
-
-    // debug: print the timer
-    if cli.benchmark {
-        println!("Elapsed time: {:.4?}", before.elapsed());
-    }
-
-    // convert the near_misses list into a map of {num, uniques}
-    let mut near_miss_map: HashMap<u128, u32> = HashMap::new();
-    for nm in near_misses.iter() {
-        near_miss_map.insert(*nm, get_num_uniques(Natural::from(*nm), claim_data.base));
-    }
-
-    // compile results
-    let submit_data = FieldSubmit {
-        id: claim_data.id,
-        username: &cli.username,
-        client_version: &CLIENT_VERSION,
-        unique_count: qty_uniques,
-        near_misses: near_miss_map,
-    };
-    // print debug information
-    if !cli.quiet {
-        println!("{:?}", submit_data);
-    }
-
-    // upload results (only if not doing benchmarking)
-    if !cli.benchmark {
-        submit_field_detailed(&cli.api_url, submit_data)
+    match &cli.command {
+        Commands::Detailed(args) => {
+            // get field data
+            let claim_data =
+                get_field_detailed(&args.api_url, &args.username, &args.base, &args.max_range);
+            // print debug information
+            if !cli.quiet {
+                println!("{:?}", claim_data);
+            }
+            // process range
+            let (near_misses, qty_uniques) = process_range_detailed(
+                claim_data.search_start,
+                claim_data.search_end,
+                claim_data.base,
+            );
+            // compile near_misses
+            let mut near_miss_map: HashMap<u128, u32> = HashMap::new();
+            for nm in near_misses.iter() {
+                near_miss_map.insert(*nm, get_num_uniques(Natural::from(*nm), claim_data.base));
+            }
+            // compile results
+            let submit_data = FieldSubmitDetailed {
+                id: claim_data.id,
+                username: &args.username,
+                client_version: &CLIENT_VERSION,
+                unique_count: qty_uniques,
+                near_misses: near_miss_map,
+            };
+            // print debug information
+            if !cli.quiet {
+                println!("{:?}", submit_data);
+            }
+            // upload results
+            submit_field_detailed(&args.api_url, submit_data)
+        }
+        Commands::Niceonly(args) => {
+            // get field data
+            let claim_data =
+                get_field_niceonly(&args.api_url, &args.username, &args.base, &args.max_range);
+            // print debug information
+            if !cli.quiet {
+                println!("{:?}", claim_data);
+            }
+            // process range
+            let nice_list = process_range_niceonly(
+                claim_data.search_start,
+                claim_data.search_end,
+                claim_data.base,
+            );
+            // compile results
+            let submit_data = FieldSubmitNiceonly {
+                id: claim_data.id,
+                username: &args.username,
+                client_version: &CLIENT_VERSION,
+                nice_list: nice_list,
+            };
+            // print debug information
+            if !cli.quiet {
+                println!("{:?}", submit_data);
+            }
+            // upload results
+            submit_field_niceonly(&args.api_url, submit_data)
+        }
+        Commands::Benchmark(_args) => {
+            // get field data
+            let claim_data = get_field_benchmark();
+            // print debug information
+            if !cli.quiet {
+                println!("{:?}", claim_data);
+            }
+            let before = Instant::now();
+            process_range_detailed(
+                claim_data.search_start,
+                claim_data.search_end,
+                claim_data.base,
+            );
+            // print debug information
+            if !cli.quiet {
+                println!("{:?}", claim_data);
+            }
+            println!("Elapsed time: {:.4?}", before.elapsed());
+        }
     }
 }
