@@ -15,6 +15,7 @@ extern crate serde;
 use serde::{Deserialize, Serialize};
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+const MAX_SUPPORTED_BASE: u32 = 120;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -255,6 +256,45 @@ fn test_get_num_uniques() {
     );
 }
 
+// test if the given number is 100% nice
+fn get_is_nice(num: Natural, base: u32) -> bool {
+    // create a boolean array that represents all possible digits
+    let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
+
+    // square the number and check those digits
+    let squared = (&num).pow(2);
+    for digit in squared.to_digits_asc(&base) {
+        match digits_indicator.get_mut(digit as usize) {
+            Some(b) if *b => return false,
+            Some(b) => *b = true,
+            None => unreachable!(),
+        }
+    }
+
+    // cube the number and check those digits
+    let cubed = squared * num;
+    for digit in cubed.to_digits_asc(&base) {
+        match digits_indicator.get_mut(digit as usize) {
+            Some(b) if *b => return false,
+            Some(b) => *b = true,
+            None => unreachable!(),
+        }
+    }
+
+    return true;
+}
+
+#[test]
+fn test_get_is_nice() {
+    assert_eq!(get_is_nice(Natural::from(68 as u128), 10), false);
+    assert_eq!(get_is_nice(Natural::from(69 as u128), 10), true);
+    assert_eq!(get_is_nice(Natural::from(70 as u128), 10), false);
+    assert_eq!(
+        get_is_nice(Natural::from(173583337834150 as u128), 44),
+        false
+    );
+}
+
 // get detailed niceness data on a range of numbers and aggregate it
 fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>, HashMap<u32, u32>) {
     // near_misses_cutoff: minimum number of uniques required for the number to be recorded
@@ -334,22 +374,15 @@ fn test_process_range_detailed() {
 }
 
 fn process_range_niceonly(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
-    // nice_list: list of numbers with niceness ratio (uniques/base) above the cutoff
-    let mut nice_list: Vec<u128> = vec![];
+    (n_start..n_end)
+        .filter(|num| get_is_nice(Natural::from(*num), base))
+        .collect()
+}
 
-    // loop for all items in range (try to optimize anything in here)
-    for num in n_start..n_end {
-        // get the number of uniques in the sqube
-        let num_uniques: u32 = get_num_uniques(Natural::from(num), base);
-
-        // check if it's 100% nice
-        if num_uniques == base {
-            nice_list.push(num);
-        }
-    }
-
-    // return the list
-    return nice_list;
+#[test]
+fn test_process_range_niceonly() {
+    assert_eq!(process_range_niceonly(47, 100, 10), Vec::from([69,]));
+    assert_eq!(process_range_niceonly(144, 329, 12), Vec::<u128>::new());
 }
 
 fn main() {
@@ -427,15 +460,11 @@ fn main() {
                 println!("{:?}", claim_data);
             }
             let before = Instant::now();
-            process_range_detailed(
+            process_range_niceonly(
                 claim_data.search_start,
                 claim_data.search_end,
                 claim_data.base,
             );
-            // print debug information
-            if !cli.quiet {
-                println!("{:?}", claim_data);
-            }
             println!("Elapsed time: {:.4?}", before.elapsed());
         }
     }
