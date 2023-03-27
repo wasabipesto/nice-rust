@@ -609,6 +609,7 @@ version = "2.0.0"
 dependencies = [
  "clap",
  "malachite",
+ "malachite-nz",
  "openssl",
  "reqwest",
  "serde",

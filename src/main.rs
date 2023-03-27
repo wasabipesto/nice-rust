@@ -1,12 +1,14 @@
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::env;
 
 extern crate clap;
 use clap::{Args, Parser, Subcommand};
 
 extern crate malachite;
-use malachite::num::arithmetic::traits::Pow;
-use malachite::{num::conversion::traits::Digits, Natural};
+use malachite::natural::Natural;
+use malachite::num::arithmetic::traits::{DivAssignRem, Pow};
+use malachite::num::conversion::traits::Digits;
 
 use std::time::Instant;
 
@@ -15,7 +17,7 @@ extern crate serde;
 use serde::{Deserialize, Serialize};
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const MAX_SUPPORTED_BASE: u32 = 120;
+const MAX_SUPPORTED_BASE: u32 = 97;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -92,17 +94,6 @@ struct FieldSubmitNiceonly<'me> {
     nice_list: Vec<u128>,
 }
 
-// get a static field for benchmarking
-// TODO: add additional benchmark ranges
-fn get_field_benchmark() -> FieldClaim {
-    return FieldClaim {
-        id: 15,
-        base: 28,
-        search_start: 52260814,
-        search_end: 91068707,
-    };
-}
-
 // custom deserialization for stringified bigints
 // TODO: deserialize into naturals directly
 fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<u128, D::Error>
@@ -116,6 +107,17 @@ where
     } else {
         Err(serde::de::Error::custom(format!("invalid number: {}", s)))
     }
+}
+
+// get a static field for benchmarking
+// TODO: add additional benchmark ranges
+fn get_field_benchmark() -> FieldClaim {
+    return FieldClaim {
+        id: 15,
+        base: 28,
+        search_start: 52260814,
+        search_end: 91068707,
+    };
 }
 
 // get a field from the server - detailed
@@ -208,7 +210,7 @@ fn submit_field_niceonly(api_url: &str, submit_data: FieldSubmitNiceonly) {
     }
 }
 
-// get the number of unique digits in the concatenated sqube of a specified number
+// get the number of unique digits in the sqube of a specified number
 fn get_num_uniques(num: Natural, base: u32) -> u32 {
     // create a boolean array that represents all possible digits
     let mut digits_indicator: Vec<bool> = vec![false; base as usize];
@@ -257,40 +259,52 @@ fn test_get_num_uniques() {
 }
 
 // test if the given number is 100% nice
-fn get_is_nice(num: Natural, base: u32) -> bool {
+fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     // create a boolean array that represents all possible digits
     let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
 
     // square the number and check those digits
     let squared = (&num).pow(2);
-    for digit in squared.to_digits_asc(&base) {
-        match digits_indicator.get_mut(digit as usize) {
-            Some(b) if *b => return false,
-            Some(b) => *b = true,
-            None => unreachable!(),
+    let mut n = squared.clone();
+    while n > 0 {
+        let remainder = usize::try_from(&(n.div_assign_rem(base))).unwrap();
+        if digits_indicator[remainder] {
+            return false;
         }
+        digits_indicator[remainder] = true;
     }
 
-    // cube the number and check those digits
-    let cubed = squared * num;
-    for digit in cubed.to_digits_asc(&base) {
-        match digits_indicator.get_mut(digit as usize) {
-            Some(b) if *b => return false,
-            Some(b) => *b = true,
-            None => unreachable!(),
+    // cube the number and check those digit
+    let mut n = squared * num;
+    while n > 0 {
+        let remainder = usize::try_from(&(n.div_assign_rem(base))).unwrap();
+        if digits_indicator[remainder] {
+            return false;
         }
+        digits_indicator[remainder] = true;
     }
-
     return true;
 }
 
 #[test]
 fn test_get_is_nice() {
-    assert_eq!(get_is_nice(Natural::from(68 as u128), 10), false);
-    assert_eq!(get_is_nice(Natural::from(69 as u128), 10), true);
-    assert_eq!(get_is_nice(Natural::from(70 as u128), 10), false);
     assert_eq!(
-        get_is_nice(Natural::from(173583337834150 as u128), 44),
+        get_is_nice(&Natural::from(68 as u128), &Natural::from(10 as u32)),
+        false
+    );
+    assert_eq!(
+        get_is_nice(&Natural::from(69 as u128), &Natural::from(10 as u32)),
+        true
+    );
+    assert_eq!(
+        get_is_nice(&Natural::from(70 as u128), &Natural::from(10 as u32)),
+        false
+    );
+    assert_eq!(
+        get_is_nice(
+            &Natural::from(173583337834150 as u128),
+            &Natural::from(44 as u32)
+        ),
         false
     );
 }
@@ -374,8 +388,9 @@ fn test_process_range_detailed() {
 }
 
 fn process_range_niceonly(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
+    let base_natural = Natural::from(base);
     (n_start..n_end)
-        .filter(|num| get_is_nice(Natural::from(*num), base))
+        .filter(|num| get_is_nice(&Natural::from(*num), &base_natural))
         .collect()
 }
 
@@ -443,7 +458,7 @@ fn main() {
                 id: claim_data.id,
                 username: &args.username,
                 client_version: &CLIENT_VERSION,
-                nice_list: nice_list,
+                nice_list,
             };
             // print debug information
             if !cli.quiet {
