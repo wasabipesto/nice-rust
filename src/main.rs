@@ -26,19 +26,6 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    #[arg(short, long, help = "suppress some output")]
-    quiet: bool,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    Detailed(APIArgs),
-    Niceonly(APIArgs),
-    Benchmark(BenchmarkArgs),
-}
-
-#[derive(Args)]
-struct APIArgs {
     #[arg(
         long,
         default_value = "https://nicenumbers.net/api",
@@ -54,17 +41,29 @@ struct APIArgs {
     )]
     username: String,
 
+    #[arg(short, long, help = "suppress some output")]
+    quiet: bool,
+
+    #[arg(short, long, help = "show additional output")]
+    verbose: bool,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Detailed(APIArgs),
+    Niceonly(APIArgs),
+}
+
+#[derive(Args)]
+struct APIArgs {
     #[arg(short, long, help = "request a range in a specific base")]
     base: Option<u32>,
 
     #[arg(short = 'r', long, help = "request a differently-sized range")]
     max_range: Option<u128>,
-}
 
-#[derive(Args)]
-struct BenchmarkArgs {
-    #[arg(short = 'r', long, help = "request a differently-sized range")]
-    max_range: Option<u128>,
+    #[arg(long, help = "run an offline benchmark")]
+    benchmark: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -110,13 +109,16 @@ where
 }
 
 // get a static field for benchmarking
-// TODO: add additional benchmark ranges
-fn get_field_benchmark() -> FieldClaim {
+fn get_field_benchmark(max_range: &Option<u128>) -> FieldClaim {
+    let search_end = match max_range {
+        Some(range) => 91068707.min(52260814 + range),
+        _ => 91068707,
+    };
     return FieldClaim {
         id: 15,
         base: 28,
         search_start: 52260814,
-        search_end: 91068707,
+        search_end: search_end,
     };
 }
 
@@ -407,12 +409,17 @@ fn main() {
     match &cli.command {
         Commands::Detailed(args) => {
             // get field data
-            let claim_data =
-                get_field_detailed(&args.api_url, &args.username, &args.base, &args.max_range);
+            let claim_data = if args.benchmark {
+                get_field_benchmark(&args.max_range)
+            } else {
+                get_field_detailed(&cli.api_url, &cli.username, &args.base, &args.max_range)
+            };
             // print debug information
             if !cli.quiet {
                 println!("{:?}", claim_data);
             }
+            // start timer
+            let before = Instant::now();
             // process range
             let (near_misses, qty_uniques) = process_range_detailed(
                 claim_data.search_start,
@@ -427,7 +434,7 @@ fn main() {
             // compile results
             let submit_data = FieldSubmitDetailed {
                 id: claim_data.id,
-                username: &args.username,
+                username: &cli.username,
                 client_version: &CLIENT_VERSION,
                 unique_count: qty_uniques,
                 near_misses: near_miss_map,
@@ -436,17 +443,31 @@ fn main() {
             if !cli.quiet {
                 println!("{:?}", submit_data);
             }
-            // upload results
-            submit_field_detailed(&args.api_url, submit_data)
+            if args.benchmark || cli.verbose {
+                println!("Elapsed time: {:.4?}", before.elapsed());
+                println!(
+                    "Hash rate:    {:.3e}",
+                    (claim_data.search_end - claim_data.search_start)
+                        / before.elapsed().as_secs() as u128
+                );
+            } else {
+                // upload results
+                submit_field_detailed(&cli.api_url, submit_data)
+            }
         }
         Commands::Niceonly(args) => {
             // get field data
-            let claim_data =
-                get_field_niceonly(&args.api_url, &args.username, &args.base, &args.max_range);
+            let claim_data = if args.benchmark {
+                get_field_benchmark(&args.max_range)
+            } else {
+                get_field_niceonly(&cli.api_url, &cli.username, &args.base, &args.max_range)
+            };
             // print debug information
             if !cli.quiet {
                 println!("{:?}", claim_data);
             }
+            // start timer
+            let before = Instant::now();
             // process range
             let nice_list = process_range_niceonly(
                 claim_data.search_start,
@@ -456,7 +477,7 @@ fn main() {
             // compile results
             let submit_data = FieldSubmitNiceonly {
                 id: claim_data.id,
-                username: &args.username,
+                username: &cli.username,
                 client_version: &CLIENT_VERSION,
                 nice_list,
             };
@@ -464,23 +485,17 @@ fn main() {
             if !cli.quiet {
                 println!("{:?}", submit_data);
             }
-            // upload results
-            submit_field_niceonly(&args.api_url, submit_data)
-        }
-        Commands::Benchmark(_args) => {
-            // get field data
-            let claim_data = get_field_benchmark();
-            // print debug information
-            if !cli.quiet {
-                println!("{:?}", claim_data);
+            if args.benchmark || cli.verbose {
+                println!("Elapsed time: {:.3?}", before.elapsed());
+                println!(
+                    "Hash rate:    {:.3e}",
+                    (claim_data.search_end - claim_data.search_start)
+                        / before.elapsed().as_secs() as u128
+                );
+            } else {
+                // upload results
+                submit_field_niceonly(&cli.api_url, submit_data)
             }
-            let before = Instant::now();
-            process_range_niceonly(
-                claim_data.search_start,
-                claim_data.search_end,
-                claim_data.base,
-            );
-            println!("Elapsed time: {:.4?}", before.elapsed());
         }
     }
 }
