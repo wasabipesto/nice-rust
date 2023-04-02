@@ -50,7 +50,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// perform detailed analysis
     Detailed(APIArgs),
+
+    /// search for 100% nice numbers
     Niceonly(APIArgs),
 }
 

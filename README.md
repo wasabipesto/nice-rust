@@ -4,63 +4,23 @@
 
 ## Quickstart
 
-Grab the latest release from the [releases page](https://github.com/wasabipesto/nice-rust/releases/latest) and include your username with the `--username` option. Optionally, use the flag `--benchmark` for a prebuilt offline benchmarking test. This version should run on most linux builds, please open an issue if you have a problem running it.
+Grab the latest release from the [releases page](https://github.com/wasabipesto/nice-rust/releases/latest). Include your username with the `--username` option and select the `detailed` or `niceonly` process. 
+
+```
+nice-rust --username asfaloth detailed
+```
+
+Optionally, use the flag `--benchmark` for a prebuilt offline benchmarking test. See `nice-rust --help` for additional argumnents.
 
 ## Why does this exist
 
 Square-cube pandigials ("nice" numbers) seem to be distributed pseudo-randomly. It doesn't take very long to check if a number is pandigital in a specific base, but even after we narrow the search range to numbers with the right amount of digits in their square and cube there's a lot of numbers to check. This client connects to a central server to avoid duplicating work.
 
-For more background, check out the [original article](https://beautifulthorns.wixsite.com/home/post/is-69-unique) and [my findings](https://wasabipesto.com/nice).
+For more background, check out the [original article](https://beautifulthorns.wixsite.com/home/post/is-69-unique) and [my findings](https://nicenumbers.net).
 
 ## What this does
 
-This script connects to my server running the [nice-backend](https://github.com/wasabipesto/nice-backend) at `https://nice.wasabipesto.com`. 
-
-When you GET the `/claim` endpoint, the backend returns details of a range to search from the database. Each range is a set of numbers, represented in base 10, alongisde a base to use for representations. The entire possible set of numbers valid in the selected base is divided up into fields of a maximum of 1e9 numbers. This range takes my computer anywhere from 2-7 hours to process, so once you request a range the claim is valid for twelve hours (after which the backend may give this claim to someone else).
-
-When you request a claim, you can optionally include a username in the format `/claim?username=asfaloth`. An example claim response looks like this:
-
-```
-{
-  "base": 35,
-  "claimed_by": "asfaloth",
-  "claimed_time": "Wed, 04 Jan 2023 11:43:01 GMT",
-  "expiration_time": "Wed, 04 Jan 2023 13:43:01 GMT",
-  "search_end": 37069211990,
-  "search_id": 120,
-  "search_start": 36769211991
-}
-```
-
-To submit your results, send a POST to `/submit` with the following structure:
-
-```
-{
-    "search_id": 120, 
-    "username": "asfaloth", 
-    "client_version": '1.0.0', 
-    "unique_count": {
-        "1": 0,
-        "2": 1,
-        ...
-    }, 
-    "near_misses": {
-        "30447607382": 33,
-        ...
-    }
-}
-```
-
-- `search_id` should match the ID provided to you in the claim response
-- `username` and `client-version` are optional strings for reference only
-- `unique_count` is a dict, where
-    - the keys are the number of possible unique digits from 1 to the base, and
-    - the values are the count of numbers in the range that have that quantity of unique digits
-        - the sum of values in this dict should equal the search range
-- `near_misses` is a dict, where
-    - the keys are numbers who have a niceness >= 0.9 (i.e. the number of unique digits in the representation is greater than/equal to 90% of the max), and
-    - the values are the number of unique digits in the representation
-        - this dict can be empty if there are no numbers with niceness >= 0
+This script connects to my server running the [nice-backend-v](https://github.com/wasabipesto/nice-backend-v) at `https://nicenumbers.net`. The API structure is described in detail there.
 
 ## What you can do
 
