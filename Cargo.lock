@@ -605,10 +605,11 @@ dependencies = [
 
 [[package]]
 name = "nice-rust"
-version = "1.1.4"
+version = "2.0.0"
 dependencies = [
  "clap",
  "malachite",
+ "malachite-nz",
  "openssl",
  "reqwest",
  "serde",
