@@ -62,6 +62,9 @@ struct APIArgs {
     #[arg(short = 'r', long, help = "request a differently-sized range")]
     max_range: Option<u128>,
 
+    #[arg(long, help = "request a specific field by id")]
+    field: Option<u128>,
+
     #[arg(long, help = "run an offline benchmark")]
     benchmark: bool,
 }
@@ -128,6 +131,7 @@ fn get_field_detailed(
     username: &str,
     base: &Option<u32>,
     max_range: &Option<u128>,
+    field: &Option<u128>,
 ) -> FieldClaim {
     let mut query_url = api_url.to_owned() + &"/claim/detailed?username=".to_owned() + username;
     if let Some(base_val) = base {
@@ -135,6 +139,9 @@ fn get_field_detailed(
     }
     if let Some(max_range_val) = max_range {
         query_url += &("&max_range=".to_owned() + &max_range_val.to_string());
+    }
+    if let Some(field_id_val) = field {
+        query_url += &("&field=".to_owned() + &field_id_val.to_string());
     }
     let claim_data: Result<FieldClaim, reqwest::Error> =
         reqwest::blocking::get(query_url).unwrap().json();
@@ -147,6 +154,7 @@ fn get_field_niceonly(
     username: &str,
     base: &Option<u32>,
     max_range: &Option<u128>,
+    field: &Option<u128>,
 ) -> FieldClaim {
     let mut query_url = api_url.to_owned() + &"/claim/niceonly?username=".to_owned() + username;
     if let Some(base_val) = base {
@@ -154,6 +162,9 @@ fn get_field_niceonly(
     }
     if let Some(max_range_val) = max_range {
         query_url += &("&max_range=".to_owned() + &max_range_val.to_string());
+    }
+    if let Some(field_id_val) = field {
+        query_url += &("&field=".to_owned() + &field_id_val.to_string());
     }
     let claim_data: Result<FieldClaim, reqwest::Error> =
         reqwest::blocking::get(query_url).unwrap().json();
@@ -412,7 +423,13 @@ fn main() {
             let claim_data = if args.benchmark {
                 get_field_benchmark(&args.max_range)
             } else {
-                get_field_detailed(&cli.api_url, &cli.username, &args.base, &args.max_range)
+                get_field_detailed(
+                    &cli.api_url,
+                    &cli.username,
+                    &args.base,
+                    &args.max_range,
+                    &args.field,
+                )
             };
             // print debug information
             if !cli.quiet {
@@ -460,7 +477,13 @@ fn main() {
             let claim_data = if args.benchmark {
                 get_field_benchmark(&args.max_range)
             } else {
-                get_field_niceonly(&cli.api_url, &cli.username, &args.base, &args.max_range)
+                get_field_niceonly(
+                    &cli.api_url,
+                    &cli.username,
+                    &args.base,
+                    &args.max_range,
+                    &args.field,
+                )
             };
             // print debug information
             if !cli.quiet {
