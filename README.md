@@ -10,7 +10,7 @@ Grab the latest release from the [releases page](https://github.com/wasabipesto/
 nice-rust --username asfaloth detailed
 ```
 
-Optionally, use the flag `--benchmark` for a prebuilt offline benchmarking test. See `nice-rust --help` for additional argumnents.
+Optionally, use the flag `--benchmark` for a prebuilt offline benchmarking test. See `nice-rust --help` for additional arguments.
 
 ## Why does this exist
 
@@ -26,7 +26,7 @@ This script connects to my server running the [nice-backend-v](https://github.co
 
 First and foremost, you can run a search node! It doesn't have to be running 24/7, you can shut it down without warning, you are under no obligation to do this for any length of time. Even searching a single range helps!
 
-If you're interested, you can download this souce code and make some tweaks. See if you can reduce the search time, run a node for a while, and see how you stack up. Implement it in another language if you'd like!
+If you're interested, you can download this source code and make some tweaks. See if you can reduce the search time, run a node for a while, and see how you stack up. Implement it in another language if you'd like!
 
 ## Building
 
