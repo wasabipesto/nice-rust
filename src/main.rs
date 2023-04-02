@@ -31,7 +31,7 @@ struct Cli {
         default_value = "https://nicenumbers.net/api",
         help = "the base API URL to connect to"
     )]
-    api_url: String,
+    api_base: String,
 
     #[arg(
         short,
@@ -127,13 +127,13 @@ fn get_field_benchmark(max_range: &Option<u128>) -> FieldClaim {
 
 // get a field from the server - detailed
 fn get_field_detailed(
-    api_url: &str,
+    api_base: &str,
     username: &str,
     base: &Option<u32>,
     max_range: &Option<u128>,
     field: &Option<u128>,
 ) -> FieldClaim {
-    let mut query_url = api_url.to_owned() + &"/claim/detailed?username=".to_owned() + username;
+    let mut query_url = api_base.to_owned() + &"/claim/detailed?username=".to_owned() + username;
     if let Some(base_val) = base {
         query_url += &("&base=".to_owned() + &base_val.to_string());
     }
@@ -150,13 +150,13 @@ fn get_field_detailed(
 
 // get a field from the server - nice only
 fn get_field_niceonly(
-    api_url: &str,
+    api_base: &str,
     username: &str,
     base: &Option<u32>,
     max_range: &Option<u128>,
     field: &Option<u128>,
 ) -> FieldClaim {
-    let mut query_url = api_url.to_owned() + &"/claim/niceonly?username=".to_owned() + username;
+    let mut query_url = api_base.to_owned() + &"/claim/niceonly?username=".to_owned() + username;
     if let Some(base_val) = base {
         query_url += &("&base=".to_owned() + &base_val.to_string());
     }
@@ -172,10 +172,10 @@ fn get_field_niceonly(
 }
 
 // submit field data to the server - detailed
-fn submit_field_detailed(api_url: &str, submit_data: FieldSubmitDetailed) {
+fn submit_field_detailed(api_base: &str, submit_data: FieldSubmitDetailed) {
     let client = reqwest::blocking::Client::new();
     let response = client
-        .post(api_url.to_owned() + &"/submit/detailed")
+        .post(api_base.to_owned() + &"/submit/detailed")
         .json(&submit_data)
         .send();
 
@@ -198,10 +198,10 @@ fn submit_field_detailed(api_url: &str, submit_data: FieldSubmitDetailed) {
 }
 
 // submit field data to the server - nice only
-fn submit_field_niceonly(api_url: &str, submit_data: FieldSubmitNiceonly) {
+fn submit_field_niceonly(api_base: &str, submit_data: FieldSubmitNiceonly) {
     let client = reqwest::blocking::Client::new();
     let response = client
-        .post(api_url.to_owned() + &"/submit/niceonly")
+        .post(api_base.to_owned() + &"/submit/niceonly")
         .json(&submit_data)
         .send();
 
@@ -424,7 +424,7 @@ fn main() {
                 get_field_benchmark(&args.max_range)
             } else {
                 get_field_detailed(
-                    &cli.api_url,
+                    &cli.api_base,
                     &cli.username,
                     &args.base,
                     &args.max_range,
@@ -469,7 +469,7 @@ fn main() {
                 );
             } else {
                 // upload results
-                submit_field_detailed(&cli.api_url, submit_data)
+                submit_field_detailed(&cli.api_base, submit_data)
             }
         }
         Commands::Niceonly(args) => {
@@ -478,7 +478,7 @@ fn main() {
                 get_field_benchmark(&args.max_range)
             } else {
                 get_field_niceonly(
-                    &cli.api_url,
+                    &cli.api_base,
                     &cli.username,
                     &args.base,
                     &args.max_range,
@@ -517,7 +517,7 @@ fn main() {
                 );
             } else {
                 // upload results
-                submit_field_niceonly(&cli.api_url, submit_data)
+                submit_field_niceonly(&cli.api_base, submit_data)
             }
         }
     }
