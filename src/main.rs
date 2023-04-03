@@ -404,8 +404,10 @@ fn test_process_range_detailed() {
 }
 
 fn process_range_niceonly(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
+    let remainders = Vec::from([0, 9, 18, 27]); // base 28
     let base_natural = Natural::from(base);
     (n_start..n_end)
+        .filter(|num| remainders.contains(&(num % 9)))
         .filter(|num| get_is_nice(&Natural::from(*num), &base_natural))
         .collect()
 }
