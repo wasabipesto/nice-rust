@@ -80,9 +80,9 @@ struct APIArgs {
 struct FieldClaim {
     id: u32,
     base: u32,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
+    #[serde(deserialize_with = "deserialize_string_to_u128")]
     search_start: u128,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
+    #[serde(deserialize_with = "deserialize_string_to_u128")]
     search_end: u128,
 }
 
@@ -105,7 +105,7 @@ struct FieldSubmitNiceonly<'me> {
 
 // custom deserialization for stringified bigints
 // TODO: deserialize into naturals directly
-fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<u128, D::Error>
+fn deserialize_string_to_u128<'de, D>(deserializer: D) -> Result<u128, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -289,6 +289,14 @@ fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     return true;
 }
 
+// get residue classes for a base
+fn get_residue_filter(base: u32) -> Vec<u32> {
+    let target_residue = base * (base - 1) / 2 % (base - 1);
+    (0..(base - 1))
+        .filter(|num| (num.pow(2) + num.pow(3)) % (base - 1) == target_residue)
+        .collect()
+}
+
 // get detailed niceness data on a range of numbers and aggregate it
 fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>, HashMap<u32, u32>) {
     // near_misses_cutoff: minimum number of uniques required for the number to be recorded
@@ -327,9 +335,9 @@ fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>, 
 
 fn process_range_niceonly(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
     let base_natural = Natural::from(base);
-    let residue_filter = Vec::new();
+    let residue_filter = get_residue_filter(base);
     (n_start..n_end)
-        .filter(|num| residue_filter.contains(&(num % (base as u128 - 1))))
+        .filter(|num| residue_filter.contains(&((num % (base as u128 - 1)) as u32)))
         .filter(|num| get_is_nice(&Natural::from(*num), &base_natural))
         .collect()
 }
