@@ -395,7 +395,8 @@ fn main() {
                     (claim_data.search_end - claim_data.search_start)
                         / before.elapsed().as_secs() as u128
                 );
-            } else {
+            }
+            if !args.benchmark {
                 // upload results
                 submit_field_detailed(&cli.api_base, submit_data)
             }
@@ -443,7 +444,8 @@ fn main() {
                     (claim_data.search_end - claim_data.search_start)
                         / before.elapsed().as_secs() as u128
                 );
-            } else {
+            }
+            if !args.benchmark {
                 // upload results
                 submit_field_niceonly(&cli.api_base, submit_data)
             }
