@@ -16,9 +16,8 @@ extern crate reqwest;
 extern crate serde;
 use serde::{Deserialize, Serialize};
 
-const MAX_SUPPORTED_BASE: u32 = 97;
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-//const RESIDUE_JSON: &str = include_str!("residue.json");
+const MAX_SUPPORTED_BASE: u32 = 97;
 
 #[cfg(test)]
 mod tests;
@@ -80,9 +79,9 @@ struct APIArgs {
 struct FieldClaim {
     id: u32,
     base: u32,
-    #[serde(deserialize_with = "deserialize_string_to_u128")]
+    #[serde(deserialize_with = "deserialize_stringified_number")]
     search_start: u128,
-    #[serde(deserialize_with = "deserialize_string_to_u128")]
+    #[serde(deserialize_with = "deserialize_stringified_number")]
     search_end: u128,
 }
 
@@ -105,7 +104,7 @@ struct FieldSubmitNiceonly<'me> {
 
 // custom deserialization for stringified bigints
 // TODO: deserialize into naturals directly
-fn deserialize_string_to_u128<'de, D>(deserializer: D) -> Result<u128, D::Error>
+fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<u128, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
