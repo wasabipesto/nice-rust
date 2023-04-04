@@ -149,6 +149,7 @@ fn get_field_detailed(
     if let Some(field_id_val) = field {
         query_url += &("&field=".to_owned() + &field_id_val.to_string());
     }
+    query_url += &("&max_base=".to_owned() + &MAX_SUPPORTED_BASE.to_string());
     let claim_data: Result<FieldClaim, reqwest::Error> =
         reqwest::blocking::get(query_url).unwrap().json();
     claim_data.unwrap()
@@ -172,6 +173,7 @@ fn get_field_niceonly(
     if let Some(field_id_val) = field {
         query_url += &("&field=".to_owned() + &field_id_val.to_string());
     }
+    query_url += &("&max_base=".to_owned() + &MAX_SUPPORTED_BASE.to_string());
     let claim_data: Result<FieldClaim, reqwest::Error> =
         reqwest::blocking::get(query_url).unwrap().json();
     claim_data.unwrap()
