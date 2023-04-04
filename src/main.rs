@@ -19,6 +19,9 @@ use serde::{Deserialize, Serialize};
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MAX_SUPPORTED_BASE: u32 = 97;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
@@ -257,23 +260,6 @@ fn get_num_uniques(num: Natural, base: u32) -> u32 {
     return unique_digits;
 }
 
-#[test]
-fn test_get_num_uniques() {
-    assert_eq!(get_num_uniques(Natural::from(69 as u128), 10), 10);
-    assert_eq!(get_num_uniques(Natural::from(256 as u128), 2), 2);
-    assert_eq!(get_num_uniques(Natural::from(123 as u128), 8), 8);
-    assert_eq!(get_num_uniques(Natural::from(15 as u128), 16), 5);
-    assert_eq!(get_num_uniques(Natural::from(100 as u128), 99), 3);
-    assert_eq!(
-        get_num_uniques(Natural::from(4134931983708 as u128), 40),
-        39
-    );
-    assert_eq!(
-        get_num_uniques(Natural::from(173583337834150 as u128), 44),
-        41
-    );
-}
-
 // test if the given number is 100% nice
 fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     // create a boolean array that represents all possible digits
@@ -302,27 +288,12 @@ fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     return true;
 }
 
-#[test]
-fn test_get_is_nice() {
-    assert_eq!(
-        get_is_nice(&Natural::from(68 as u128), &Natural::from(10 as u32)),
-        false
-    );
-    assert_eq!(
-        get_is_nice(&Natural::from(69 as u128), &Natural::from(10 as u32)),
-        true
-    );
-    assert_eq!(
-        get_is_nice(&Natural::from(70 as u128), &Natural::from(10 as u32)),
-        false
-    );
-    assert_eq!(
-        get_is_nice(
-            &Natural::from(173583337834150 as u128),
-            &Natural::from(44 as u32)
-        ),
-        false
-    );
+// get residue classes for a base
+fn get_residue_filter(base: u32) -> Vec<u32> {
+    let target_residue = base * (base - 1) / 2 % (base - 1);
+    (0..(base - 1))
+        .filter(|num| (num.pow(2) + num.pow(3)) % (base - 1) == target_residue)
+        .collect()
 }
 
 // get detailed niceness data on a range of numbers and aggregate it
@@ -361,59 +332,13 @@ fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>, 
     return (near_misses, dict_qty_uniques);
 }
 
-#[test]
-fn test_process_range_detailed() {
-    assert_eq!(
-        process_range_detailed(47, 100, 10),
-        (
-            Vec::from([69,]),
-            HashMap::from([
-                (1, 0),
-                (2, 0),
-                (3, 0),
-                (4, 4),
-                (5, 5),
-                (6, 15),
-                (7, 20),
-                (8, 7),
-                (9, 1),
-                (10, 1),
-            ])
-        )
-    );
-    assert_eq!(
-        process_range_detailed(144, 329, 12),
-        (
-            Vec::from([]),
-            HashMap::from([
-                (1, 0),
-                (2, 1),
-                (3, 1),
-                (4, 6),
-                (5, 15),
-                (6, 27),
-                (7, 55),
-                (8, 53),
-                (9, 24),
-                (10, 3),
-                (11, 0),
-                (12, 0),
-            ])
-        )
-    );
-}
-
 fn process_range_niceonly(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
     let base_natural = Natural::from(base);
+    let residue_filter = get_residue_filter(base);
     (n_start..n_end)
+        .filter(|num| residue_filter.contains(&((num % (base as u128 - 1)) as u32)))
         .filter(|num| get_is_nice(&Natural::from(*num), &base_natural))
         .collect()
-}
-
-#[test]
-fn test_process_range_niceonly() {
-    assert_eq!(process_range_niceonly(47, 100, 10), Vec::from([69,]));
-    assert_eq!(process_range_niceonly(144, 329, 12), Vec::<u128>::new());
 }
 
 fn main() {
