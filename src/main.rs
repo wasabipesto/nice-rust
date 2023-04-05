@@ -304,8 +304,7 @@ fn process_range_detailed(n_start: u128, n_end: u128, base: u32) -> (Vec<u128>, 
     let near_misses_cutoff: u32 = (base as f32 * 0.9) as u32;
 
     // near_misses: list of numbers with niceness ratio (uniques/base) above the cutoff
-    // pre-allocate memory for the maximum possible number of near misses (wastes memory but saves resizing)
-    let mut near_misses: Vec<u128> = Vec::with_capacity((n_end - n_start) as usize);
+    let mut near_misses: Vec<u128> = Vec::new();
 
     // qty_uniques: the quantity of numbers with each possible niceness
     let mut qty_uniques: Vec<u32> = vec![0; base as usize];
