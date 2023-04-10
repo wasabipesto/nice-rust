@@ -7,7 +7,7 @@ repository = "https://github.com/wasabipesto/nice-rust"
 license-file = "LICENSE.txt"
 
 [dependencies]
-clap = { version = "4.1", features = ["derive"] }
+clap = { version = "4.2", features = ["derive"] }
 malachite = "0.3.2"
 malachite-nz = "0.3.2"
 openssl = { version = "*", features = ["vendored"] }
