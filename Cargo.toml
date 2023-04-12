@@ -1,13 +1,13 @@
 [package]
 name = "nice-rust"
-version = "2.0.4"
+version = "2.1.0"
 authors = ["wasabipesto <nice@wasabipesto.com>"]
 description = "a client for distributed search of square-cube pandigitals"
 repository = "https://github.com/wasabipesto/nice-rust"
 license-file = "LICENSE"
 
 [[bin]]
-name = "nice_rust_cli"
+name = "nice-rust"
 path = "src/main.rs"
 
 [lib]

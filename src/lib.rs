@@ -57,7 +57,7 @@ where
     }
 }
 
-pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
+fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
     let search_end = match max_range {
         Some(range) => 91068707.min(52260814 + range),
         _ => 91068707,
@@ -70,7 +70,7 @@ pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
     };
 }
 
-pub fn get_field(
+fn get_field(
     mode: &Mode,
     api_base: &str,
     username: &str,
@@ -94,39 +94,39 @@ pub fn get_field(
         query_url += &("&field=".to_owned() + &field_id_val.to_string());
     }
     query_url += &("&max_base=".to_owned() + &MAX_SUPPORTED_BASE.to_string());
-    let claim_data: Result<FieldClaim, reqwest::Error> =
-        reqwest::blocking::get(query_url).unwrap().json();
-    claim_data.unwrap()
-}
 
-pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
-    let client = reqwest::blocking::Client::new();
-    let mut query_url = api_base.to_owned();
-    query_url += &match mode {
-        Mode::Detailed => "/submit/detailed",
-        Mode::Niceonly => "/submit/niceonly",
-    };
-    let response = client.post(query_url).json(&submit_data).send();
-
-    match response {
-        Ok(res) => {
-            if res.status().is_success() {
-                // The request was successful, no need to handle the response body.
-                return;
-            }
-            match res.text() {
-                Ok(msg) => println!("Server returned an error: {}", msg),
-                Err(_) => println!("Server returned an error."),
-            }
-        }
-        Err(e) => {
-            // Handle network errors.
-            println!("Network error: {}", e);
-        }
+    let response = reqwest::blocking::get(&query_url).unwrap_or_else(|e| panic!("Error: {}", e));
+    match response.json::<FieldClaim>() {
+        Ok(claim_data) => claim_data,
+        Err(e) => panic!("Error: {}", e),
     }
 }
 
-pub fn get_num_uniques(num: Natural, base: u32) -> u32 {
+fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
+    let url = match mode {
+        Mode::Detailed => format!("{}/submit/detailed", api_base),
+        Mode::Niceonly => format!("{}/submit/niceonly", api_base),
+    };
+
+    let response = reqwest::blocking::Client::new()
+        .post(&url)
+        .json(&submit_data)
+        .send();
+    match response {
+        Ok(response) => {
+            if response.status().is_success() {
+                return; // 👍
+            }
+            match response.text() {
+                Ok(msg) => panic!("Server returned an error: {}", msg),
+                Err(_) => panic!("Server returned an error."),
+            }
+        }
+        Err(e) => panic!("Network error: {}", e),
+    }
+}
+
+fn get_num_uniques(num: Natural, base: u32) -> u32 {
     // create a boolean array that represents all possible digits
     let mut digits_indicator: Vec<bool> = vec![false; base as usize];
 
@@ -152,7 +152,7 @@ pub fn get_num_uniques(num: Natural, base: u32) -> u32 {
     return unique_digits;
 }
 
-pub fn get_is_nice(num: &Natural, base: &Natural) -> bool {
+fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     // create a boolean array that represents all possible digits
     let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
 
@@ -179,7 +179,7 @@ pub fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     return true;
 }
 
-pub fn get_residue_filter(base: u32) -> Vec<u32> {
+fn get_residue_filter(base: u32) -> Vec<u32> {
     let target_residue = base * (base - 1) / 2 % (base - 1);
     (0..(base - 1))
         .filter(|num| (num.pow(2) + num.pow(3)) % (base - 1) == target_residue)
