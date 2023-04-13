@@ -68,20 +68,14 @@ where
 
 /// Generate a field offline for benchmark testing.
 pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
-    let default_range: u128 = 1000000;
+    let range: u128 = max_range.unwrap_or(100000);
     return FieldClaim {
         id: 0,
         base: 40,
         search_start: Natural::from(916284264916 as u128),
-        search_end: match max_range {
-            Some(range) => Natural::from(6553600000000 as u128)
-                .min(Natural::from(1916284264916 + range as u128)),
-            _ => Natural::from(1916284264916 + default_range as u128),
-        },
-        search_range: match max_range {
-            Some(range) => Natural::from(range as u128),
-            _ => Natural::from(default_range as u128),
-        },
+        search_end: Natural::from(6553600000000 as u128)
+            .min(Natural::from(916284264916 + range as u128)),
+        search_range: Natural::from(range),
     };
 }
 
@@ -215,12 +209,13 @@ pub fn get_nice_list(n_start: Natural, n_end: Natural, base: u32) -> Vec<Natural
     let mut nice_list = Vec::new();
     let mut num = n_start;
     while num < n_end {
-        let (_quotient, remainder) = (&num).div_mod(&base_natural);
+        let (_quotient, remainder) = (&num).div_mod(&base_natural - Natural::ONE);
         let residue = u32::try_from(&remainder).unwrap();
-        if residue_filter.contains(&residue) && get_is_nice(&num, &base_natural) {
-            nice_list.push(num.clone());
+        if residue_filter.contains(&residue) {
+            if get_is_nice(&num, &base_natural) {
+                nice_list.push(num.clone());
+            }
         }
-        //println!("{:?}", [&num, &n_end, &remainder]);
         num += Natural::ONE;
     }
     nice_list
@@ -446,7 +441,7 @@ mod tests {
     fn test_get_nice_list() {
         assert_eq!(
             get_nice_list(Natural::from(47 as u128), Natural::from(100 as u128), 10),
-            Vec::from([69,])
+            Vec::from([Natural::from(69 as u128),])
         );
         assert_eq!(
             get_nice_list(Natural::from(144 as u128), Natural::from(329 as u128), 12),
