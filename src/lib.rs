@@ -58,15 +58,14 @@ where
 }
 
 pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
-    let search_end = match max_range {
-        Some(range) => 91068707.min(52260814 + range),
-        _ => 91068707,
-    };
     return FieldClaim {
-        id: 15,
-        base: 28,
-        search_start: 52260814,
-        search_end: search_end,
+        id: 0,
+        base: 40,
+        search_start: 1916284264916,
+        search_end: match max_range {
+            Some(range) => 6553600000000.min(1916284264916 + range),
+            _ => 1916285264916,
+        },
     };
 }
 
