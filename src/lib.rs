@@ -316,7 +316,8 @@ pub fn run(
         println!("Elapsed time: {:.3?}", before.elapsed());
         println!(
             "Hash rate:    {:.3e}",
-            (claim_data.search_end - claim_data.search_start) / before.elapsed().as_secs() as u128
+            (claim_data.search_end - claim_data.search_start) as f64
+                / before.elapsed().as_secs_f64()
         );
     }
     if !benchmark {
