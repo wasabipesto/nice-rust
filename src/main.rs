@@ -1,3 +1,5 @@
+//! A simple CLI for the nice_rust library.
+
 extern crate nice_rust;
 
 extern crate clap;
