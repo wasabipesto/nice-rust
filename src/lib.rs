@@ -1,3 +1,8 @@
+//! A client for distributed search of square-cube pandigitals
+//!
+//! This script connects to my server running the nice-backend at https://nicenumbers.net.
+//! The API structure is described in detail at https://github.com/wasabipesto/nice-backend-v.
+
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::env;
@@ -18,12 +23,14 @@ use clap::ValueEnum; // have to derive enum for cli
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MAX_SUPPORTED_BASE: u32 = 97;
 
+/// Each possible search mode the server and client supports.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Mode {
     Detailed,
     Niceonly,
 }
 
+/// A field returned from the server. Used as input for processing.
 #[derive(Debug, Deserialize)]
 pub struct FieldClaim {
     pub id: u32,
@@ -34,6 +41,7 @@ pub struct FieldClaim {
     pub search_end: u128,
 }
 
+/// The compiled results sent to the server after processing. Options for both modes.
 #[derive(Debug, Serialize)]
 pub struct FieldSubmit<'me> {
     pub id: u32,
@@ -44,19 +52,18 @@ pub struct FieldSubmit<'me> {
     pub nice_list: Option<Vec<u128>>,
 }
 
+/// Deserialize BigInts from the server that are wrapped in quotes.
 fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<u128, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    let s = s.trim_matches('"');
-    if let Ok(number) = s.parse() {
-        Ok(number)
-    } else {
-        Err(serde::de::Error::custom(format!("invalid number: {}", s)))
-    }
+    s.trim_matches('"')
+        .parse()
+        .map_err(|_| serde::de::Error::custom(format!("invalid number: {}", s)))
 }
 
+/// Generate a field offline for benchmark testing.
 pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
     return FieldClaim {
         id: 0,
@@ -69,6 +76,7 @@ pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
     };
 }
 
+/// Request a field from the server. Supplies CLI options as query strings.
 pub fn get_field(
     mode: &Mode,
     api_base: &str,
@@ -101,6 +109,7 @@ pub fn get_field(
     }
 }
 
+/// Submit field results to the server. Panic if there is an error.
 pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
     let url = match mode {
         Mode::Detailed => format!("{}/submit/detailed", api_base),
@@ -125,6 +134,7 @@ pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
     }
 }
 
+/// Get the count of unique digits in a number's sqube when represented in a specific base.
 pub fn get_num_uniques(num: Natural, base: u32) -> u32 {
     // create a boolean array that represents all possible digits
     let mut digits_indicator: Vec<bool> = vec![false; base as usize];
@@ -151,6 +161,8 @@ pub fn get_num_uniques(num: Natural, base: u32) -> u32 {
     return unique_digits;
 }
 
+/// Quickly determine if a number is 100% nice.
+/// Assumes we have already done residue class filtering.
 pub fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     // create a boolean array that represents all possible digits
     let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
@@ -178,6 +190,8 @@ pub fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     return true;
 }
 
+/// Get a list of residue filters for a base.
+/// For more information: https://beautifulthorns.wixsite.com/home/post/progress-update-on-the-search-for-nice-numbers
 pub fn get_residue_filter(base: u32) -> Vec<u32> {
     let target_residue = base * (base - 1) / 2 % (base - 1);
     (0..(base - 1))
@@ -185,6 +199,7 @@ pub fn get_residue_filter(base: u32) -> Vec<u32> {
         .collect()
 }
 
+/// Given a range, return a list of 100% nice numbers.
 pub fn get_nice_list(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
     let base_natural = Natural::from(base);
     let residue_filter = get_residue_filter(base);
@@ -194,6 +209,9 @@ pub fn get_nice_list(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
         .collect()
 }
 
+/// Given a range, return two maps:
+/// - A map of near misses and the number of unique digits in the sqube of each.
+/// - A map of integers [1,base] and the count of numbers with that many unique digits.
 pub fn process_range_detailed(
     n_start: u128,
     n_end: u128,
@@ -238,6 +256,7 @@ pub fn process_range_detailed(
     return (near_miss_map, unique_count_map);
 }
 
+/// Run the program following the specified flow.
 pub fn run(
     mode: Mode,
     api_base: String,
@@ -297,7 +316,8 @@ pub fn run(
         println!("Elapsed time: {:.3?}", before.elapsed());
         println!(
             "Hash rate:    {:.3e}",
-            (claim_data.search_end - claim_data.search_start) / before.elapsed().as_secs() as u128
+            (claim_data.search_end - claim_data.search_start) as f64
+                / before.elapsed().as_secs_f64()
         );
     }
     if !benchmark {
@@ -406,5 +426,15 @@ mod tests {
     fn test_get_nice_list() {
         assert_eq!(get_nice_list(47, 100, 10), Vec::from([69,]));
         assert_eq!(get_nice_list(144, 329, 12), Vec::<u128>::new());
+        assert_eq!(get_nice_list(398, 609, 13), Vec::<u128>::new());
+        assert_eq!(get_nice_list(734, 1138, 14), Vec::<u128>::new());
+        assert_eq!(get_nice_list(1369, 3375, 15), Vec::<u128>::new());
+        assert_eq!(get_nice_list(4913, 12632, 17), Vec::<u128>::new());
+        assert_eq!(get_nice_list(15285, 24743, 18), Vec::<u128>::new());
+        assert_eq!(get_nice_list(29898, 48838, 19), Vec::<u128>::new());
+        assert_eq!(
+            get_nice_list(40000000000000000000000000, 40000000000000000001000000, 70),
+            Vec::<u128>::new()
+        );
     }
 }
