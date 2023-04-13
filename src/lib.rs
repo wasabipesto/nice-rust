@@ -9,13 +9,14 @@ use std::env;
 use std::time::Instant;
 
 extern crate malachite;
-use self::malachite::natural::Natural;
-use self::malachite::num::arithmetic::traits::{DivAssignRem, Pow};
-use self::malachite::num::conversion::traits::Digits;
+use malachite::natural::Natural;
+use malachite::num::arithmetic::traits::{DivAssignRem, Pow};
+use malachite::num::basic::traits::One;
+use malachite::num::conversion::traits::Digits;
 
 extern crate reqwest;
 extern crate serde;
-use self::serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 extern crate clap;
 use clap::ValueEnum; // have to derive enum for cli
@@ -36,9 +37,11 @@ pub struct FieldClaim {
     pub id: u32,
     pub base: u32,
     #[serde(deserialize_with = "deserialize_stringified_number")]
-    pub search_start: u128,
+    pub search_start: Natural,
     #[serde(deserialize_with = "deserialize_stringified_number")]
-    pub search_end: u128,
+    pub search_end: Natural,
+    #[serde(deserialize_with = "deserialize_stringified_number")]
+    pub search_range: Natural,
 }
 
 /// The compiled results sent to the server after processing. Options for both modes.
@@ -48,12 +51,12 @@ pub struct FieldSubmit<'me> {
     pub username: &'me str,
     pub client_version: &'static str,
     pub unique_count: Option<HashMap<u32, u32>>,
-    pub near_misses: Option<HashMap<u128, u32>>,
-    pub nice_list: Option<Vec<u128>>,
+    pub near_misses: Option<HashMap<Natural, u32>>,
+    pub nice_list: Option<Vec<Natural>>,
 }
 
 /// Deserialize BigInts from the server that are wrapped in quotes.
-fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<u128, D::Error>
+fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<Natural, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -65,13 +68,19 @@ where
 
 /// Generate a field offline for benchmark testing.
 pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
+    let default_range: u128 = 1000000;
     return FieldClaim {
         id: 0,
         base: 40,
-        search_start: 1916284264916,
+        search_start: Natural::from(916284264916 as u128),
         search_end: match max_range {
-            Some(range) => 6553600000000.min(1916284264916 + range),
-            _ => 1916285264916,
+            Some(range) => Natural::from(6553600000000 as u128)
+                .min(Natural::from(1916284264916 + range as u128)),
+            _ => Natural::from(1916284264916 + default_range as u128),
+        },
+        search_range: match max_range {
+            Some(range) => Natural::from(range as u128),
+            _ => Natural::from(default_range as u128),
         },
     };
 }
@@ -135,7 +144,7 @@ pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
 }
 
 /// Get the count of unique digits in a number's sqube when represented in a specific base.
-pub fn get_num_uniques(num: Natural, base: u32) -> u32 {
+pub fn get_num_uniques(num: &Natural, base: u32) -> u32 {
     // create a boolean array that represents all possible digits
     let mut digits_indicator: Vec<bool> = vec![false; base as usize];
 
@@ -200,44 +209,54 @@ pub fn get_residue_filter(base: u32) -> Vec<u32> {
 }
 
 /// Given a range, return a list of 100% nice numbers.
-pub fn get_nice_list(n_start: u128, n_end: u128, base: u32) -> Vec<u128> {
+pub fn get_nice_list(n_start: Natural, n_end: Natural, base: u32) -> Vec<Natural> {
     let base_natural = Natural::from(base);
     let residue_filter = get_residue_filter(base);
-    (n_start..n_end)
-        .filter(|num| residue_filter.contains(&((num % (base as u128 - 1)) as u32)))
-        .filter(|num| get_is_nice(&Natural::from(*num), &base_natural))
-        .collect()
+    let mut nice_list = Vec::new();
+    let mut num = n_start;
+    while num < n_end {
+        let residue = u32::try_from(&num.div_assign_rem(&base_natural)).unwrap();
+        if residue_filter.contains(&residue) && get_is_nice(&num, &base_natural) {
+            nice_list.push(num.clone());
+        }
+        num += Natural::ONE;
+    }
+    nice_list
 }
 
 /// Given a range, return two maps:
 /// - A map of near misses and the number of unique digits in the sqube of each.
 /// - A map of integers [1,base] and the count of numbers with that many unique digits.
 pub fn process_range_detailed(
-    n_start: u128,
-    n_end: u128,
+    n_start: Natural,
+    n_end: Natural,
     base: u32,
-) -> (HashMap<u128, u32>, HashMap<u32, u32>) {
+) -> (HashMap<Natural, u32>, HashMap<u32, u32>) {
     // near_misses_cutoff: minimum number of uniques required for the number to be recorded
     let near_misses_cutoff: u32 = (base as f32 * 0.9) as u32;
 
     // near_miss_list: list of numbers with niceness ratio (uniques/base) above the cutoff
-    let mut near_miss_list: Vec<u128> = Vec::new();
+    let mut near_miss_list: Vec<Natural> = Vec::new();
 
     // qty_uniques: the quantity of numbers with each possible niceness
     let mut qty_uniques: Vec<u32> = vec![0; base as usize];
 
     // loop for all items in range (try to optimize anything in here)
-    for num in n_start..n_end {
+    let mut num = n_start.clone();
+    while num < n_end {
         // get the number of uniques in the sqube
-        let num_uniques: u32 = get_num_uniques(Natural::from(num), base);
+        let num_uniques: u32 = get_num_uniques(&num, base);
 
         // check if it's nice enough to record in near_miss_list
         if num_uniques > near_misses_cutoff {
-            near_miss_list.push(num);
+            near_miss_list.push(num.clone());
         }
 
         // update our quantity distribution in qty_uniques
         qty_uniques[num_uniques as usize - 1] += 1;
+
+        // increment the iterator
+        num += Natural::ONE;
     }
 
     // build the initial values (api expects it)
@@ -247,9 +266,9 @@ pub fn process_range_detailed(
     }
 
     // buid out the miss map
-    let mut near_miss_map: HashMap<u128, u32> = HashMap::new();
+    let mut near_miss_map: HashMap<Natural, u32> = HashMap::new();
     for nm in near_miss_list.iter() {
-        near_miss_map.insert(*nm, get_num_uniques(Natural::from(*nm), base));
+        near_miss_map.insert(nm.clone(), get_num_uniques(nm, base));
     }
 
     // return it as a tuple
@@ -316,8 +335,7 @@ pub fn run(
         println!("Elapsed time: {:.3?}", before.elapsed());
         println!(
             "Hash rate:    {:.3e}",
-            (claim_data.search_end - claim_data.search_start) as f64
-                / before.elapsed().as_secs_f64()
+            f64::try_from(&claim_data.search_range).unwrap() / before.elapsed().as_secs_f64()
         );
     }
     if !benchmark {
@@ -331,17 +349,17 @@ mod tests {
 
     #[test]
     fn test_get_num_uniques() {
-        assert_eq!(get_num_uniques(Natural::from(69 as u128), 10), 10);
-        assert_eq!(get_num_uniques(Natural::from(256 as u128), 2), 2);
-        assert_eq!(get_num_uniques(Natural::from(123 as u128), 8), 8);
-        assert_eq!(get_num_uniques(Natural::from(15 as u128), 16), 5);
-        assert_eq!(get_num_uniques(Natural::from(100 as u128), 99), 3);
+        assert_eq!(get_num_uniques(&Natural::from(69 as u128), 10), 10);
+        assert_eq!(get_num_uniques(&Natural::from(256 as u128), 2), 2);
+        assert_eq!(get_num_uniques(&Natural::from(123 as u128), 8), 8);
+        assert_eq!(get_num_uniques(&Natural::from(15 as u128), 16), 5);
+        assert_eq!(get_num_uniques(&Natural::from(100 as u128), 99), 3);
         assert_eq!(
-            get_num_uniques(Natural::from(4134931983708 as u128), 40),
+            get_num_uniques(&Natural::from(4134931983708 as u128), 40),
             39
         );
         assert_eq!(
-            get_num_uniques(Natural::from(173583337834150 as u128), 44),
+            get_num_uniques(&Natural::from(173583337834150 as u128), 44),
             41
         );
     }
@@ -372,9 +390,9 @@ mod tests {
     #[test]
     fn test_process_range_detailed() {
         assert_eq!(
-            process_range_detailed(47, 100, 10),
+            process_range_detailed(Natural::from(47 as u128), Natural::from(100 as u128), 10),
             (
-                HashMap::from([(69, 10),]),
+                HashMap::from([(Natural::from(69 as u128), 10),]),
                 HashMap::from([
                     (1, 0),
                     (2, 0),
@@ -390,7 +408,7 @@ mod tests {
             )
         );
         assert_eq!(
-            process_range_detailed(144, 329, 12),
+            process_range_detailed(Natural::from(144 as u128), Natural::from(329 as u128), 12),
             (
                 HashMap::from([]),
                 HashMap::from([
@@ -424,16 +442,56 @@ mod tests {
 
     #[test]
     fn test_get_nice_list() {
-        assert_eq!(get_nice_list(47, 100, 10), Vec::from([69,]));
-        assert_eq!(get_nice_list(144, 329, 12), Vec::<u128>::new());
-        assert_eq!(get_nice_list(398, 609, 13), Vec::<u128>::new());
-        assert_eq!(get_nice_list(734, 1138, 14), Vec::<u128>::new());
-        assert_eq!(get_nice_list(1369, 3375, 15), Vec::<u128>::new());
-        assert_eq!(get_nice_list(4913, 12632, 17), Vec::<u128>::new());
-        assert_eq!(get_nice_list(15285, 24743, 18), Vec::<u128>::new());
-        assert_eq!(get_nice_list(29898, 48838, 19), Vec::<u128>::new());
         assert_eq!(
-            get_nice_list(40000000000000000000000000, 40000000000000000001000000, 70),
+            get_nice_list(Natural::from(47 as u128), Natural::from(100 as u128), 10),
+            Vec::from([69,])
+        );
+        assert_eq!(
+            get_nice_list(Natural::from(144 as u128), Natural::from(329 as u128), 12),
+            Vec::<u128>::new()
+        );
+        assert_eq!(
+            get_nice_list(Natural::from(398 as u128), Natural::from(609 as u128), 13),
+            Vec::<u128>::new()
+        );
+        assert_eq!(
+            get_nice_list(Natural::from(734 as u128), Natural::from(1138 as u128), 14),
+            Vec::<u128>::new()
+        );
+        assert_eq!(
+            get_nice_list(Natural::from(1369 as u128), Natural::from(3375 as u128), 15),
+            Vec::<u128>::new()
+        );
+        assert_eq!(
+            get_nice_list(
+                Natural::from(4913 as u128),
+                Natural::from(12632 as u128),
+                17
+            ),
+            Vec::<u128>::new()
+        );
+        assert_eq!(
+            get_nice_list(
+                Natural::from(15285 as u128),
+                Natural::from(24743 as u128),
+                18
+            ),
+            Vec::<u128>::new()
+        );
+        assert_eq!(
+            get_nice_list(
+                Natural::from(29898 as u128),
+                Natural::from(48838 as u128),
+                19
+            ),
+            Vec::<u128>::new()
+        );
+        assert_eq!(
+            get_nice_list(
+                Natural::from(40000000000000000000000000 as u128),
+                Natural::from(40000000000000000001000000 as u128),
+                70
+            ),
             Vec::<u128>::new()
         );
     }

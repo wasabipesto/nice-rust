@@ -621,6 +621,7 @@ dependencies = [
  "embed-doc-image",
  "itertools",
  "malachite-base",
+ "serde",
 ]
 
 [[package]]

@@ -17,7 +17,7 @@ path = "src/lib.rs"
 [dependencies]
 clap = { version = "4.2", features = ["derive"] }
 malachite = "0.3.2"
-malachite-nz = "0.3.2"
+malachite-nz = { version = "0.3.2", features = ["enable_serde"] }
 openssl = { version = "*", features = ["vendored"] }
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1.0", features = ["derive"] }
