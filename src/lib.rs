@@ -425,5 +425,15 @@ mod tests {
     fn test_get_nice_list() {
         assert_eq!(get_nice_list(47, 100, 10), Vec::from([69,]));
         assert_eq!(get_nice_list(144, 329, 12), Vec::<u128>::new());
+        assert_eq!(get_nice_list(398, 609, 13), Vec::<u128>::new());
+        assert_eq!(get_nice_list(734, 1138, 14), Vec::<u128>::new());
+        assert_eq!(get_nice_list(1369, 3375, 15), Vec::<u128>::new());
+        assert_eq!(get_nice_list(4913, 12632, 17), Vec::<u128>::new());
+        assert_eq!(get_nice_list(15285, 24743, 18), Vec::<u128>::new());
+        assert_eq!(get_nice_list(29898, 48838, 19), Vec::<u128>::new());
+        assert_eq!(
+            get_nice_list(40000000000000000000000000, 40000000000000000001000000, 70),
+            Vec::<u128>::new()
+        );
     }
 }
