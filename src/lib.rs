@@ -58,12 +58,9 @@ where
     D: serde::Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    let s = s.trim_matches('"');
-    if let Ok(number) = s.parse() {
-        Ok(number)
-    } else {
-        Err(serde::de::Error::custom(format!("invalid number: {}", s)))
-    }
+    s.trim_matches('"')
+        .parse()
+        .map_err(|_| serde::de::Error::custom(format!("invalid number: {}", s)))
 }
 
 /// Generate a field offline for benchmark testing.
