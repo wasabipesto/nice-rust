@@ -57,7 +57,7 @@ where
     }
 }
 
-fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
+pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
     let search_end = match max_range {
         Some(range) => 91068707.min(52260814 + range),
         _ => 91068707,
@@ -70,7 +70,7 @@ fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
     };
 }
 
-fn get_field(
+pub fn get_field(
     mode: &Mode,
     api_base: &str,
     username: &str,
@@ -102,7 +102,7 @@ fn get_field(
     }
 }
 
-fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
+pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
     let url = match mode {
         Mode::Detailed => format!("{}/submit/detailed", api_base),
         Mode::Niceonly => format!("{}/submit/niceonly", api_base),
@@ -126,7 +126,7 @@ fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
     }
 }
 
-fn get_num_uniques(num: Natural, base: u32) -> u32 {
+pub fn get_num_uniques(num: Natural, base: u32) -> u32 {
     // create a boolean array that represents all possible digits
     let mut digits_indicator: Vec<bool> = vec![false; base as usize];
 
@@ -152,7 +152,7 @@ fn get_num_uniques(num: Natural, base: u32) -> u32 {
     return unique_digits;
 }
 
-fn get_is_nice(num: &Natural, base: &Natural) -> bool {
+pub fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     // create a boolean array that represents all possible digits
     let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
 
@@ -179,7 +179,7 @@ fn get_is_nice(num: &Natural, base: &Natural) -> bool {
     return true;
 }
 
-fn get_residue_filter(base: u32) -> Vec<u32> {
+pub fn get_residue_filter(base: u32) -> Vec<u32> {
     let target_residue = base * (base - 1) / 2 % (base - 1);
     (0..(base - 1))
         .filter(|num| (num.pow(2) + num.pow(3)) % (base - 1) == target_residue)
