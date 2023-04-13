@@ -40,7 +40,7 @@ fn integration_niceonly() {
         false,
         false,
         None,
-        Some(100000),
+        Some(1000000),
         None,
     );
 }
