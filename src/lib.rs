@@ -483,13 +483,13 @@ mod tests {
             ),
             Vec::<u128>::new()
         );
-        /*assert_eq!(
+        assert_eq!(
             get_nice_list(
                 Natural::from(40000000000000000000000000 as u128),
                 Natural::from(40000000000000000000100000 as u128),
                 70
             ),
             Vec::<u128>::new()
-        );*/
+        );
     }
 }
