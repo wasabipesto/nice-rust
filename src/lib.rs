@@ -22,7 +22,7 @@ extern crate clap;
 use clap::ValueEnum; // have to derive enum for cli
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const MAX_SUPPORTED_BASE: u32 = 97;
+const MAX_SUPPORTED_BASE: u32 = 120;
 
 /// Each possible search mode the server and client supports.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
