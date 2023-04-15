@@ -20,7 +20,7 @@ pub struct FieldClaim {
 pub struct FieldSubmit<'me> {
     pub id: u32,
     pub username: &'me str,
-    pub client_version: &'static str,
+    pub client_version: &'me str,
     pub unique_count: Option<HashMap<u32, u32>>,
     pub near_misses: Option<HashMap<Natural, u32>>,
     pub nice_list: Option<Vec<Natural>>,
@@ -120,6 +120,31 @@ pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
         }
         Err(e) => panic!("Network error: {}", e),
     }
+}
+
+#[allow(dead_code)]
+pub fn submit_field_from_args(
+    mode: &Mode,
+    api_base: &str,
+    id: u32,
+    username: &str,
+    client_version: &str,
+    unique_count: Option<HashMap<u32, u32>>,
+    near_misses: Option<HashMap<Natural, u32>>,
+    nice_list: Option<Vec<Natural>>,
+) {
+    return submit_field(
+        mode,
+        api_base,
+        FieldSubmit {
+            id,
+            username,
+            client_version,
+            unique_count,
+            near_misses,
+            nice_list,
+        },
+    );
 }
 
 #[cfg(test)]
