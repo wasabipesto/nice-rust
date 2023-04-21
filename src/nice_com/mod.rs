@@ -25,15 +25,14 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
         digits_indicator.iter_mut().for_each(|x| *x = false);
 
         // square the number and save those digits
-        let squared = (&num).pow(2);
-        n = squared.clone();
+        n = (&num).pow(2);
         while n > 0 {
             let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
             digits_indicator[remainder] = true;
         }
 
         // cube the number and save those digits
-        n = squared * &num;
+        n = (&num).pow(3);
         while n > 0 {
             let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
             digits_indicator[remainder] = true;
@@ -41,7 +40,7 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
 
         // count the digits, update the unique count
         unique_digits = digits_indicator.iter().filter(|&&x| x).count() as u32;
-        unique_count_vec[unique_digits as usize] += 1;
+        unique_count_vec[unique_digits as usize - 1] += 1;
 
         // save if the number is pretty nice
         if unique_digits > near_misses_cutoff {
@@ -52,6 +51,7 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
         num += Natural::ONE;
     }
 
+    // sum unique counts from vec
     let unique_count = unique_count_vec
         .iter()
         .enumerate()
