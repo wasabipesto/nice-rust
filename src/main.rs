@@ -40,6 +40,9 @@ pub struct Cli {
     #[arg(long, help = "run an offline benchmark")]
     benchmark: bool,
 
+    #[arg(long, help = "run indefinitely with the current settings")]
+    repeat: bool,
+
     #[arg(short, long, help = "request a range in a specific base")]
     base: Option<u32>,
 
@@ -53,6 +56,23 @@ pub struct Cli {
 fn main() {
     // parse args from command line
     let cli = Cli::parse();
+
+    // loop if repeat is set
+    while cli.repeat {
+        nice_rust::run(
+            cli.mode,
+            cli.api_base.clone(),
+            cli.username.clone(),
+            cli.quiet,
+            cli.verbose,
+            cli.benchmark,
+            cli.base,
+            cli.max_range,
+            cli.field,
+        );
+    }
+
+    // or just run once
     nice_rust::run(
         cli.mode,
         cli.api_base,
