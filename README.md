@@ -37,14 +37,6 @@ sudo apt install build-essential libssl-dev
 curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh
 ```
 
-Optionally, install some benchmarking tools and enable their use:
-
-```shell
-sudo apt install linux-perf
-sudo sysctl -w kernel.perf_event_paranoid=1
-cargo install flamegraph
-```
-
 Download this source code and build it:
 
 ```shell
@@ -61,21 +53,14 @@ RUSTFLAGS="-C target-cpu=native" cargo build --release
 
 The output will be at `target/release/nice-rust`.
 
-Generate a flamegraph:
+Optionally, install some benchmarking tools and enable their use to produce a flamegraph:
 
 ```shell
-cargo flamegraph -- --benchmark
+sudo apt install linux-perf
+sudo sysctl -w kernel.perf_event_paranoid=1
+
+cargo install flamegraph
+CARGO_PROFILE_RELEASE_DEBUG=true cargo flamegraph -- --benchmark
 ```
-
-## Performance
-
-The main places for optimization seem to be:
-
-- Sorting the digits in the square-cube list, which is required for deduplication in getting the number of unique values. I tried using a HashSet instead, but inserting everything in the set took even longer. A good implementation could cut this down though.
-    - Update: Using a boolean array removed this bottleneck and opened the possibility of stopping after the square for quick searches.
-- Taking the input number to the second/third power, which is obviously required and probably cannot be optimized without a massive lookup table. And we never have to do it more than once for any number, so we can't cache results.
-    - Update: Zentrik brought good contributions to this one too, like multiplying the square by the number instead of cubing from scratch.
-- Converting numbers to the desired base, which is again necessary and also abstracted away by ~~`num-bigint`~~ now `malachite`. I don't think I can make this any faster.
-    - Update: Malachite is better on a lot of axes but we might be able to roll our own conversion and save by preallocating some memory.
 
 ![Flamegraph](./flamegraph.svg)
