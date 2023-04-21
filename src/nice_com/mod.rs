@@ -3,8 +3,6 @@
 use super::*;
 use crate::api_com::FieldClaim;
 
-mod base_range;
-//use self::base_range::get_base_range;
 mod residue_filter;
 use self::residue_filter::get_residue_filter;
 

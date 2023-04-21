@@ -1,8 +1,6 @@
 //! A module for deaing with residue filters
 //! For more information: https://beautifulthorns.wixsite.com/home/post/progress-update-on-the-search-for-nice-numbers
 
-use super::*;
-
 /// Get a list of residue filters for a base.
 pub fn get_residue_filter(base: &u32) -> Vec<u32> {
     let target_residue = base * (base - 1) / 2 % (base - 1);

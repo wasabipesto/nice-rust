@@ -22,7 +22,7 @@ use clap::ValueEnum; // have to derive enum for cli
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MAX_SUPPORTED_BASE: u32 = 120;
-const MAX_SUPPORTED_RANGE: u32 = u32::MAX;
+//const MAX_SUPPORTED_RANGE: u32 = u32::MAX;
 const NEAR_MISS_CUTOFF_PERCENT: f32 = 0.9;
 
 mod api_com;
