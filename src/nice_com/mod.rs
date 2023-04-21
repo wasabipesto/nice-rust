@@ -4,53 +4,44 @@ use crate::api_com::FieldClaim;
 
 use super::*;
 
-#[allow(unused_assignments)]
+/// Process a field by aggregating statistics on the niceness of numbers in a range.
 pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
     let base = claim_data.base;
     let base_natural = Natural::from(base);
     let near_misses_cutoff = (base as f32 * NEAR_MISS_CUTOFF_PERCENT) as u32;
 
     // output variables
-    let mut unique_digits: u32 = 0;
+    let mut unique_digits: u32;
     let mut near_misses: HashMap<Natural, u32> = HashMap::new();
-    let mut unique_count: HashMap<u32, u32> = HashMap::new();
-    for n in 0..base {
-        unique_count.insert(n + 1, 0);
-    }
+    let mut unique_count_vec = vec![0; base as usize];
 
     // iterator variables
+    let mut n: Natural;
     let mut num = claim_data.search_start.clone();
     let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
 
     while num < claim_data.search_end {
         // zero out the indicator
-        digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
+        digits_indicator.iter_mut().for_each(|x| *x = false);
 
         // square the number and save those digits
         let squared = (&num).pow(2);
-        let mut n = squared.clone();
+        n = squared.clone();
         while n > 0 {
             let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
             digits_indicator[remainder] = true;
         }
 
         // cube the number and save those digits
-        let mut n = squared * &num;
+        n = squared * &num;
         while n > 0 {
             let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
             digits_indicator[remainder] = true;
         }
 
-        // count the digits
-        unique_digits = 0;
-        for digit in digits_indicator {
-            if digit {
-                unique_digits += 1
-            }
-        }
-
-        // update the unique count
-        *unique_count.get_mut(&unique_digits).unwrap() += 1;
+        // count the digits, update the unique count
+        unique_digits = digits_indicator.iter().filter(|&&x| x).count() as u32;
+        unique_count_vec[unique_digits as usize] += 1;
 
         // save if the number is pretty nice
         if unique_digits > near_misses_cutoff {
@@ -60,6 +51,12 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
         // increment num
         num += Natural::ONE;
     }
+
+    let unique_count = unique_count_vec
+        .iter()
+        .enumerate()
+        .map(|(i, &x)| (i as u32 + 1, x))
+        .collect();
 
     return FieldSubmit {
         id: claim_data.id,
@@ -71,21 +68,26 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
     };
 }
 
-#[allow(unused_assignments)]
+/// Get a list of residue filters for a base.
+/// For more information: https://beautifulthorns.wixsite.com/home/post/progress-update-on-the-search-for-nice-numbers
+pub fn get_residue_filter(base: &u32) -> Vec<u32> {
+    let target_residue = base * (base - 1) / 2 % (base - 1);
+    (0..(base - 1))
+        .filter(|num| (num.pow(2) + num.pow(3)) % (base - 1) == target_residue)
+        .collect()
+}
+
+/// Process a field by looking for completely nice numbers.
+/// Implements several optimizations over the detailed search.
 pub fn process_niceonly_natural(claim_data: &FieldClaim) -> FieldSubmit {
     let base = claim_data.base;
     let base_natural = Natural::from(base);
     let base_natural_sub_one = Natural::from(base) - Natural::ONE;
 
-    let target_residue = base * (base - 1) / 2 % (base - 1);
-    let residue_filter: Vec<u32> = (0..(base - 1))
-        .filter(|num| (num.pow(2) + num.pow(3)) % (base - 1) == target_residue)
-        .collect();
+    let residue_filter = get_residue_filter(&base);
 
-    // output variable
+    // output & iterator variables
     let mut nice_list = Vec::new();
-
-    // iterator variables
     let mut num = &claim_data.search_start - Natural::ONE;
     let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
 
@@ -101,7 +103,7 @@ pub fn process_niceonly_natural(claim_data: &FieldClaim) -> FieldSubmit {
         }
 
         // zero out the indicator
-        digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
+        digits_indicator.iter_mut().for_each(|x| *x = false);
 
         // square the number and check those digits
         let squared = (&num).pow(2);
@@ -234,6 +236,17 @@ mod tests {
             nice_list: None,
         };
         assert_eq!(process_detailed_natural(&claim_data), submit_data);
+    }
+
+    #[test]
+    fn test_get_residue_filter() {
+        assert_eq!(get_residue_filter(&10), Vec::from([0, 3, 6, 8]));
+        assert_eq!(get_residue_filter(&11), Vec::<u32>::new());
+        assert_eq!(get_residue_filter(&12), Vec::from([0, 10]));
+        assert_eq!(get_residue_filter(&13), Vec::from([5, 9]));
+        assert_eq!(get_residue_filter(&14), Vec::from([0, 12]));
+        assert_eq!(get_residue_filter(&15), Vec::<u32>::new());
+        assert_eq!(get_residue_filter(&16), Vec::from([0, 5, 9, 14]));
     }
 
     #[test]
