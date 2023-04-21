@@ -24,12 +24,14 @@ use clap::ValueEnum; // have to derive enum for cli
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MAX_SUPPORTED_BASE: u32 = 120;
+const MAX_SUPPORTED_RANGE: u32 = u32::MAX;
+const NEAR_MISS_CUTOFF_PERCENT: f32 = 0.9;
 
 mod api_com;
 use api_com::{get_field, get_field_benchmark, submit_field, FieldSubmit};
 
 mod nice_com;
-use nice_com::process_niceonly_natural;
+use nice_com::{process_detailed_natural, process_niceonly_natural};
 
 /// Each possible search mode the server and client supports.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -197,21 +199,7 @@ pub fn run(
 
     // process range & compile results
     let submit_data: FieldSubmit = match mode {
-        Mode::Detailed => {
-            let (near_misses, unique_count) = process_range_detailed(
-                claim_data.search_start,
-                claim_data.search_end,
-                claim_data.base,
-            );
-            FieldSubmit {
-                id: claim_data.id,
-                username: username.to_string(),
-                client_version: CLIENT_VERSION.to_string(),
-                unique_count: Some(unique_count),
-                near_misses: Some(near_misses),
-                nice_list: None,
-            }
-        }
+        Mode::Detailed => process_detailed_natural(&claim_data),
         Mode::Niceonly => process_niceonly_natural(&claim_data),
     };
 
