@@ -8,6 +8,7 @@ use super::*;
 pub fn process_niceonly_natural(claim_data: &FieldClaim) -> FieldSubmit {
     let base = claim_data.base;
     let base_natural = Natural::from(base);
+    let base_natural_sub_one = Natural::from(base) - Natural::ONE;
 
     let target_residue = base * (base - 1) / 2 % (base - 1);
     let residue_filter: Vec<u32> = (0..(base - 1))
@@ -23,7 +24,7 @@ pub fn process_niceonly_natural(claim_data: &FieldClaim) -> FieldSubmit {
         num += Natural::ONE;
 
         // check residue
-        let (_quotient, remainder) = (&num).div_mod(&base_natural - Natural::ONE);
+        let remainder = (&num).mod_op(&base_natural_sub_one);
         let residue = u32::try_from(&remainder).unwrap();
         if !residue_filter.contains(&residue) {
             continue;

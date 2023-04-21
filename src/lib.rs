@@ -10,6 +10,7 @@ use std::time::Instant;
 
 extern crate malachite;
 use malachite::natural::Natural;
+use malachite::num::arithmetic::traits::Mod;
 use malachite::num::arithmetic::traits::{DivAssignRem, DivMod, Pow};
 use malachite::num::basic::traits::One;
 use malachite::num::conversion::traits::Digits;
