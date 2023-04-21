@@ -3,9 +3,10 @@
 use super::*;
 
 /// A field returned from the server. Used as input for processing.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct FieldClaim {
     pub id: u32,
+    pub username: String,
     pub base: u32,
     #[serde(deserialize_with = "deserialize_stringified_number")]
     pub search_start: Natural,
@@ -16,11 +17,11 @@ pub struct FieldClaim {
 }
 
 /// The compiled results sent to the server after processing. Options for both modes.
-#[derive(Debug, Serialize)]
-pub struct FieldSubmit<'me> {
+#[derive(Debug, Serialize, PartialEq)]
+pub struct FieldSubmit {
     pub id: u32,
-    pub username: &'me str,
-    pub client_version: &'me str,
+    pub username: String,
+    pub client_version: String,
     pub unique_count: Option<HashMap<u32, u32>>,
     pub near_misses: Option<HashMap<Natural, u32>>,
     pub nice_list: Option<Vec<Natural>>,
@@ -42,6 +43,7 @@ pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
     let range: u128 = max_range.unwrap_or(100000);
     return FieldClaim {
         id: 0,
+        username: "benchmark".to_owned(),
         base: 40,
         search_start: Natural::from(916284264916 as u128),
         search_end: Natural::from(6553600000000 as u128)
@@ -127,8 +129,8 @@ pub fn submit_field_from_args(
     mode: &Mode,
     api_base: &str,
     id: u32,
-    username: &str,
-    client_version: &str,
+    username: String,
+    client_version: String,
     unique_count: Option<HashMap<u32, u32>>,
     near_misses: Option<HashMap<Natural, u32>>,
     nice_list: Option<Vec<Natural>>,
