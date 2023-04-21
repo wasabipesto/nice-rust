@@ -621,6 +621,7 @@ dependencies = [
  "embed-doc-image",
  "itertools",
  "malachite-base",
+ "serde",
 ]
 
 [[package]]
@@ -678,7 +679,7 @@ dependencies = [
 
 [[package]]
 name = "nice-rust"
-version = "2.1.1"
+version = "2.2.0"
 dependencies = [
  "clap",
  "malachite",

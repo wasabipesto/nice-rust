@@ -4,10 +4,10 @@
 
 ## Quickstart
 
-Grab the latest release from the [releases page](https://github.com/wasabipesto/nice-rust/releases/latest). Include your username with the `--username` option and select the `detailed` or `niceonly` process. 
+Grab the latest release from the [releases page](https://github.com/wasabipesto/nice-rust/releases/latest). Include your username with the `--username` option and select the `detailed` or `niceonly` process (defaults to `detailed`). 
 
 ```
-nice-rust --username asfaloth detailed
+nice-rust --username asfaloth
 ```
 
 Optionally, use the flag `--benchmark` for a prebuilt offline benchmarking test. See `nice-rust --help` for additional arguments.
