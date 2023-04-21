@@ -1,0 +1,12 @@
+[Unit]
+Description=nice-client
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/opt/nice-rust -u %H --repeat detailed
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
