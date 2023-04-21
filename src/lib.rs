@@ -34,6 +34,9 @@ use nice_process::{process_detailed_natural, process_niceonly_natural};
 mod residue_filter;
 use self::residue_filter::get_residue_filter;
 
+mod base_range;
+use self::base_range::get_base_range;
+
 /// Each possible search mode the server and client supports.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Mode {
@@ -75,11 +78,11 @@ pub fn run(
     verbose: bool,
     benchmark: bool,
     base: Option<u32>,
-    max_range: Option<u128>,
-    field: Option<u128>,
+    max_range: Option<u32>,
+    field: Option<u32>,
 ) {
     let claim_data = if benchmark {
-        get_field_benchmark(max_range)
+        get_field_benchmark(base, max_range)
     } else {
         get_field(&mode, &api_base, &username, &base, &max_range, &field)
     };

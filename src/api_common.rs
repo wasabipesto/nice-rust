@@ -14,16 +14,17 @@ where
 }
 
 /// Generate a field offline for benchmark testing.
-pub fn get_field_benchmark(max_range: Option<u128>) -> FieldClaim {
-    let range: u128 = max_range.unwrap_or(100000);
+pub fn get_field_benchmark(base: Option<u32>, max_range: Option<u32>) -> FieldClaim {
+    let (range_start, range_end) = get_base_range(base.unwrap_or(40));
+    let range = Natural::from(max_range.unwrap_or(100000));
+    let search_end = range_end.min(&range_start + &range);
     return FieldClaim {
         id: 0,
         username: "benchmark".to_owned(),
         base: 40,
-        search_start: Natural::from(916284264916 as u128),
-        search_end: Natural::from(6553600000000 as u128)
-            .min(Natural::from(916284264916 + range as u128)),
-        search_range: Natural::from(range),
+        search_start: range_start,
+        search_end: search_end,
+        search_range: range,
     };
 }
 
@@ -33,8 +34,8 @@ fn get_claim_url(
     api_base: &str,
     username: &str,
     base: &Option<u32>,
-    max_range: &Option<u128>,
-    field: &Option<u128>,
+    max_range: &Option<u32>,
+    field: &Option<u32>,
 ) -> String {
     let mut query_url = api_base.to_owned();
     query_url += &match mode {
@@ -61,8 +62,8 @@ pub fn get_field(
     api_base: &str,
     username: &str,
     base: &Option<u32>,
-    max_range: &Option<u128>,
-    field: &Option<u128>,
+    max_range: &Option<u32>,
+    field: &Option<u32>,
 ) -> FieldClaim {
     let response = reqwest::blocking::get(&get_claim_url(
         mode, api_base, username, base, max_range, field,
@@ -97,31 +98,6 @@ pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
         }
         Err(e) => panic!("Network error: {}", e),
     }
-}
-
-#[allow(dead_code)]
-pub fn submit_field_from_args(
-    mode: &Mode,
-    api_base: &str,
-    id: u32,
-    username: String,
-    client_version: String,
-    unique_count: Option<HashMap<u32, u32>>,
-    near_misses: Option<HashMap<Natural, u32>>,
-    nice_list: Option<Vec<Natural>>,
-) {
-    return submit_field(
-        mode,
-        api_base,
-        FieldSubmit {
-            id,
-            username,
-            client_version,
-            unique_count,
-            near_misses,
-            nice_list,
-        },
-    );
 }
 
 #[cfg(test)]
