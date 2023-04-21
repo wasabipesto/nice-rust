@@ -10,8 +10,8 @@ use std::time::Instant;
 
 extern crate malachite;
 use malachite::natural::Natural;
-use malachite::num::arithmetic::traits::{DivAssignRem, Mod, Pow};
-use malachite::num::basic::traits::One;
+use malachite::num::arithmetic::traits::{CeilingRoot, DivAssignRem, FloorRoot, Mod, Pow};
+use malachite::num::basic::traits::{One, Zero};
 
 extern crate reqwest;
 extern crate serde;
