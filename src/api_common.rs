@@ -14,14 +14,13 @@ where
 }
 
 /// Generate a field offline for benchmark testing.
-pub fn get_field_benchmark(base: Option<u32>, max_range: Option<u32>) -> FieldClaim {
+pub fn get_field_benchmark(base: Option<u32>, range: Option<u32>) -> FieldClaim {
     let base = base.unwrap_or(40);
     if base % 5 == 1 {
         panic!("Invalid base {}! Base cannot be 1 mod 5.", base)
     }
-
     let (search_start, range_end) = get_base_range(base);
-    let range = Natural::from(max_range.unwrap_or(100000));
+    let range = Natural::from(range.unwrap_or(100000));
     let search_end = range_end.min(&search_start + &range);
     let search_range = &search_end - &search_start;
     return FieldClaim {
