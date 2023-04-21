@@ -1,10 +1,6 @@
 //! A module with "nice" calculation utilities.
 
 use super::*;
-use crate::api_com::FieldClaim;
-
-mod residue_filter;
-use self::residue_filter::get_residue_filter;
 
 /// Process a field by aggregating statistics on the niceness of numbers in a range.
 pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {

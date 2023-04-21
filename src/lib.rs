@@ -25,17 +25,45 @@ const MAX_SUPPORTED_BASE: u32 = 120;
 //const MAX_SUPPORTED_RANGE: u32 = u32::MAX;
 const NEAR_MISS_CUTOFF_PERCENT: f32 = 0.9;
 
-mod api_com;
-use api_com::{get_field, get_field_benchmark, submit_field, FieldSubmit};
+mod api_common;
+use api_common::{deserialize_stringified_number, get_field, get_field_benchmark, submit_field};
 
-mod nice_com;
-use nice_com::{process_detailed_natural, process_niceonly_natural};
+mod nice_process;
+use nice_process::{process_detailed_natural, process_niceonly_natural};
+
+mod residue_filter;
+use self::residue_filter::get_residue_filter;
 
 /// Each possible search mode the server and client supports.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Mode {
     Detailed,
     Niceonly,
+}
+
+/// A field returned from the server. Used as input for processing.
+#[derive(Debug, Deserialize, Clone)]
+pub struct FieldClaim {
+    pub id: u32,
+    pub username: String,
+    pub base: u32,
+    #[serde(deserialize_with = "deserialize_stringified_number")]
+    pub search_start: Natural,
+    #[serde(deserialize_with = "deserialize_stringified_number")]
+    pub search_end: Natural,
+    #[serde(deserialize_with = "deserialize_stringified_number")]
+    pub search_range: Natural,
+}
+
+/// The compiled results sent to the server after processing. Options for both modes.
+#[derive(Debug, Serialize, PartialEq)]
+pub struct FieldSubmit {
+    pub id: u32,
+    pub username: String,
+    pub client_version: String,
+    pub unique_count: Option<HashMap<u32, u32>>,
+    pub near_misses: Option<HashMap<Natural, u32>>,
+    pub nice_list: Option<Vec<Natural>>,
 }
 
 /// Run the program following the specified flow.

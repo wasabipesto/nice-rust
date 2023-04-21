@@ -2,33 +2,8 @@
 
 use super::*;
 
-/// A field returned from the server. Used as input for processing.
-#[derive(Debug, Deserialize, Clone)]
-pub struct FieldClaim {
-    pub id: u32,
-    pub username: String,
-    pub base: u32,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
-    pub search_start: Natural,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
-    pub search_end: Natural,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
-    pub search_range: Natural,
-}
-
-/// The compiled results sent to the server after processing. Options for both modes.
-#[derive(Debug, Serialize, PartialEq)]
-pub struct FieldSubmit {
-    pub id: u32,
-    pub username: String,
-    pub client_version: String,
-    pub unique_count: Option<HashMap<u32, u32>>,
-    pub near_misses: Option<HashMap<Natural, u32>>,
-    pub nice_list: Option<Vec<Natural>>,
-}
-
 /// Deserialize BigInts from the server that are wrapped in quotes.
-fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<Natural, D::Error>
+pub fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<Natural, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
