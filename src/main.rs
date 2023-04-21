@@ -44,10 +44,10 @@ pub struct Cli {
     base: Option<u32>,
 
     #[arg(short = 'r', long, help = "request a differently-sized range")]
-    max_range: Option<u128>,
+    max_range: Option<u32>,
 
     #[arg(long, help = "request a specific field by id")]
-    field: Option<u128>,
+    field: Option<u32>,
 }
 
 fn main() {
