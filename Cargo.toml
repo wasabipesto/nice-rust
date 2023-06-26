@@ -15,7 +15,7 @@ name = "nice_rust"
 path = "src/lib.rs"
 
 [dependencies]
-clap = { version = "4.2", features = ["derive"] }
+clap = { version = "4.3", features = ["derive"] }
 malachite = "0.3.2"
 malachite-nz = { version = "0.3.2", features = ["enable_serde"] }
 openssl = { version = "*", features = ["vendored"] }
