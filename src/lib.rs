@@ -26,7 +26,7 @@ const MAX_SUPPORTED_BASE: u32 = 120;
 const NEAR_MISS_CUTOFF_PERCENT: f32 = 0.9;
 
 mod api_common;
-use api_common::{deserialize_stringified_number, get_field, get_field_benchmark, submit_field};
+use api_common::{deserialize_string_to_natural, get_field, get_field_benchmark, submit_field};
 
 mod nice_process;
 use nice_process::{process_detailed_natural, process_niceonly_natural};
@@ -50,11 +50,11 @@ pub struct FieldClaim {
     pub id: u32,
     pub username: String,
     pub base: u32,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
+    #[serde(deserialize_with = "deserialize_string_to_natural")]
     pub search_start: Natural,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
+    #[serde(deserialize_with = "deserialize_string_to_natural")]
     pub search_end: Natural,
-    #[serde(deserialize_with = "deserialize_stringified_number")]
+    #[serde(deserialize_with = "deserialize_string_to_natural")]
     pub search_range: Natural,
 }
 

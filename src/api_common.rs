@@ -3,7 +3,7 @@
 use super::*;
 
 /// Deserialize BigInts from the server that are wrapped in quotes.
-pub fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<Natural, D::Error>
+pub fn deserialize_string_to_natural<'de, D>(deserializer: D) -> Result<Natural, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
