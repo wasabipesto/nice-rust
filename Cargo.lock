@@ -678,6 +678,7 @@ dependencies = [
  "openssl",
  "reqwest",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
