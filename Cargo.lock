@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "nice-rust"
-version = "2.2.2"
+version = "2.2.3"
 dependencies = [
  "clap",
  "malachite",

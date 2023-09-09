@@ -207,8 +207,8 @@ mod tests {
                 (9, 1),
                 (10, 1),
             ])),
-            near_misses: Some(HashMap::from([(Natural::from(69 as u128), 10)])),
-            nice_list: Some(Vec::from([Natural::from(69 as u128)])),
+            near_misses: Some(HashMap::from([("69".to_string(), 10)])),
+            nice_list: Some(Vec::from(["69".to_string()])),
         };
 
         // Serialize the submit_data and expected JSON
@@ -230,7 +230,7 @@ mod tests {
                 "10": 1,
             },
             "near_misses": {"69": 10},
-            "nice_list": [69]
+            "nice_list": ["69"]
         })
         .to_string();
 

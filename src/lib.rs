@@ -65,8 +65,8 @@ pub struct FieldSubmit {
     pub username: String,
     pub client_version: String,
     pub unique_count: Option<HashMap<u32, u32>>,
-    pub near_misses: Option<HashMap<Natural, u32>>,
-    pub nice_list: Option<Vec<Natural>>,
+    pub near_misses: Option<HashMap<String, u32>>,
+    pub nice_list: Option<Vec<String>>,
 }
 
 /// Run the program following the specified flow.

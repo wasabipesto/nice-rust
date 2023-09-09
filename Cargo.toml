@@ -1,6 +1,6 @@
 [package]
 name = "nice-rust"
-version = "2.2.2"
+version = "2.2.3"
 authors = ["wasabipesto <nice@wasabipesto.com>"]
 description = "a client for distributed search of square-cube pandigitals"
 repository = "https://github.com/wasabipesto/nice-rust"
