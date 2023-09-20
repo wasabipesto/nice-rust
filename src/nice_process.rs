@@ -10,7 +10,7 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
 
     // output variables
     let mut unique_digits: u32;
-    let mut near_misses: HashMap<Natural, u32> = HashMap::new();
+    let mut near_misses: HashMap<String, u32> = HashMap::new();
     let mut unique_count_vec = vec![0; base as usize];
 
     // iterator variables
@@ -42,7 +42,7 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
 
         // save if the number is pretty nice
         if unique_digits > near_misses_cutoff {
-            near_misses.insert(num.clone(), unique_digits);
+            near_misses.insert(num.to_string(), unique_digits);
         }
 
         // increment num
@@ -116,7 +116,7 @@ pub fn process_niceonly_natural(claim_data: &FieldClaim) -> FieldSubmit {
         }
 
         // save the number!
-        nice_list.push(num.clone());
+        nice_list.push(num.to_string());
     }
 
     return FieldSubmit {
@@ -160,7 +160,7 @@ mod tests {
                 (9, 1),
                 (10, 1),
             ])),
-            near_misses: Some(HashMap::from([(Natural::from(69 as u128), 10)])),
+            near_misses: Some(HashMap::from([("69".to_string(), 10)])),
             nice_list: None,
         };
         assert_eq!(process_detailed_natural(&claim_data), submit_data);
@@ -490,7 +490,7 @@ mod tests {
             client_version: CLIENT_VERSION.to_string(),
             unique_count: None,
             near_misses: None,
-            nice_list: Some(Vec::from([Natural::from(69 as u128)])),
+            nice_list: Some(Vec::from(["69".to_string()])),
         };
         assert_eq!(process_niceonly_natural(&claim_data), submit_data);
     }

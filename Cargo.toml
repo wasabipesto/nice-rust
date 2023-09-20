@@ -1,6 +1,6 @@
 [package]
 name = "nice-rust"
-version = "2.2.2"
+version = "2.2.3"
 authors = ["wasabipesto <nice@wasabipesto.com>"]
 description = "a client for distributed search of square-cube pandigitals"
 repository = "https://github.com/wasabipesto/nice-rust"
@@ -21,3 +21,4 @@ malachite-nz = { version = "0.4.0", features = ["enable_serde"] }
 openssl = { version = "*", features = ["vendored"] }
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

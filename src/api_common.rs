@@ -3,7 +3,7 @@
 use super::*;
 
 /// Deserialize BigInts from the server that are wrapped in quotes.
-pub fn deserialize_stringified_number<'de, D>(deserializer: D) -> Result<Natural, D::Error>
+pub fn deserialize_string_to_natural<'de, D>(deserializer: D) -> Result<Natural, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -108,6 +108,7 @@ pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate serde_json;
 
     #[test]
     fn test_get_claim_url() {
@@ -186,5 +187,58 @@ mod tests {
                 + &"&base=120&max_range=1000000&field=123456&max_base=".to_string()
                 + &MAX_SUPPORTED_BASE.to_string()
         );
+    }
+
+    #[test]
+    fn test_fieldsubmit_serialization() {
+        let submit_data = FieldSubmit {
+            id: 0,
+            username: String::from("anonymous"),
+            client_version: CLIENT_VERSION.to_string(),
+            unique_count: Some(HashMap::from([
+                (1, 0),
+                (2, 0),
+                (3, 0),
+                (4, 4),
+                (5, 5),
+                (6, 15),
+                (7, 20),
+                (8, 7),
+                (9, 1),
+                (10, 1),
+            ])),
+            near_misses: Some(HashMap::from([("69".to_string(), 10)])),
+            nice_list: Some(Vec::from(["69".to_string()])),
+        };
+
+        // Serialize the submit_data and expected JSON
+        let actual_json = serde_json::json!(&submit_data).to_string();
+        let expected_json = serde_json::json!({
+            "id": 0,
+            "username": "anonymous",
+            "client_version": CLIENT_VERSION.to_string(),
+            "unique_count": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 4,
+                "5": 5,
+                "6": 15,
+                "7": 20,
+                "8": 7,
+                "9": 1,
+                "10": 1,
+            },
+            "near_misses": {"69": 10},
+            "nice_list": ["69"]
+        })
+        .to_string();
+
+        // Parse both JSON strings into serde_json::Value
+        let actual_value: serde_json::Value = serde_json::from_str(&actual_json).unwrap();
+        let expected_value: serde_json::Value = serde_json::from_str(&expected_json).unwrap();
+
+        // Compare JSON values ignoring key order
+        assert_eq!(actual_value, expected_value);
     }
 }
