@@ -15,12 +15,12 @@ where
 
 /// Generate a field offline for benchmark testing.
 pub fn get_field_benchmark(base: Option<u32>, range: Option<u32>) -> FieldClaim {
-    let base = base.unwrap_or(40);
+    let base = base.unwrap_or(BENCHMARK_DEFAULT_BASE);
     if base % 5 == 1 {
         panic!("Invalid base {}! Base cannot be 1 mod 5.", base)
     }
     let (search_start, range_end) = get_base_range(base);
-    let range = Natural::from(range.unwrap_or(100000));
+    let range = Natural::from(range.unwrap_or(BUCNHMARK_DEFAULT_RANGE));
     let search_end = range_end.min(&search_start + &range);
     let search_range = &search_end - &search_start;
     return FieldClaim {
@@ -62,7 +62,7 @@ fn get_claim_url(
 }
 
 /// Request a field from the server. Supplies CLI options as query strings.
-pub fn get_field(
+pub fn get_field_from_server(
     mode: &Mode,
     api_base: &str,
     username: &str,
@@ -81,7 +81,7 @@ pub fn get_field(
 }
 
 /// Submit field results to the server. Panic if there is an error.
-pub fn submit_field(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
+pub fn submit_field_to_server(mode: &Mode, api_base: &str, submit_data: FieldSubmit) {
     let url = match mode {
         Mode::Detailed => format!("{}/submit/detailed", api_base),
         Mode::Niceonly => format!("{}/submit/niceonly", api_base),

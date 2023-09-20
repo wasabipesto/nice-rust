@@ -22,11 +22,15 @@ use clap::ValueEnum; // have to derive enum for cli
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MAX_SUPPORTED_BASE: u32 = 120;
-//const MAX_SUPPORTED_RANGE: u32 = u32::MAX;
 const NEAR_MISS_CUTOFF_PERCENT: f32 = 0.9;
+const BENCHMARK_DEFAULT_BASE: u32 = 40;
+const BUCNHMARK_DEFAULT_RANGE: u32 = 100000;
 
 mod api_common;
-use api_common::{deserialize_string_to_natural, get_field, get_field_benchmark, submit_field};
+use api_common::{
+    deserialize_string_to_natural, get_field_benchmark, get_field_from_server,
+    submit_field_to_server,
+};
 
 mod nice_process;
 use nice_process::{process_detailed_natural, process_niceonly_natural};
@@ -84,7 +88,7 @@ pub fn run(
     let claim_data = if benchmark {
         get_field_benchmark(base, max_range)
     } else {
-        get_field(&mode, &api_base, &username, &base, &max_range, &field)
+        get_field_from_server(&mode, &api_base, &username, &base, &max_range, &field)
     };
     if !quiet {
         println!("{:?}", claim_data);
@@ -108,6 +112,6 @@ pub fn run(
         );
     }
     if !benchmark {
-        submit_field(&mode, &api_base, submit_data)
+        submit_field_to_server(&mode, &api_base, submit_data)
     }
 }
