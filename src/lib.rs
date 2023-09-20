@@ -32,8 +32,8 @@ use api_common::{
     submit_field_to_server,
 };
 
-mod nice_process;
-use nice_process::{process_detailed_natural, process_niceonly_natural};
+mod process_natural;
+use process_natural::{process_detailed_natural, process_niceonly_natural};
 
 mod residue_filter;
 use self::residue_filter::get_residue_filter;
