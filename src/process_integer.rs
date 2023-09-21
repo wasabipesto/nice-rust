@@ -34,16 +34,22 @@ pub fn get_num_uniques(num: u128, base: u32) -> u32 {
 }
 
 /// Process a field by aggregating statistics on the niceness of numbers in a range.
-pub fn process_detailed(claim_data: &FieldClaim) -> FieldSubmit {
+pub fn process_detailed(claim_data: &FieldClaim, parallel: bool) -> FieldSubmit {
     let base = claim_data.base;
     let search_start = u128::try_from(&claim_data.search_start).unwrap();
     let search_end = u128::try_from(&claim_data.search_end).unwrap();
 
     // process the range and collect num_uniques for each item in the range
-    let result_map: HashMap<u128, u32> = (search_start..search_end)
-        .into_iter()
-        .map(|num| (num, get_num_uniques(num, base)))
-        .collect();
+    let result_map: HashMap<u128, u32> = match parallel {
+        false => (search_start..search_end)
+            .into_iter()
+            .map(|num| (num, get_num_uniques(num, base)))
+            .collect(),
+        true => (search_start..search_end)
+            .into_par_iter()
+            .map(|num| (num, get_num_uniques(num, base)))
+            .collect(),
+    };
 
     // collect the near misses from the result map
     let near_misses_cutoff = (base as f32 * NEAR_MISS_CUTOFF_PERCENT) as u32;
@@ -113,18 +119,26 @@ pub fn get_residue_filter(base: u32) -> Vec<u32> {
 
 /// Process a field by looking for completely nice numbers.
 /// Implements several optimizations over the detailed search.
-pub fn process_niceonly(claim_data: &FieldClaim) -> FieldSubmit {
+pub fn process_niceonly(claim_data: &FieldClaim, parallel: bool) -> FieldSubmit {
     let base = claim_data.base;
     let search_start = u128::try_from(&claim_data.search_start).unwrap();
     let search_end = u128::try_from(&claim_data.search_end).unwrap();
     let residue_filter = get_residue_filter(base);
 
-    let nice_list = (search_start..search_end)
-        .into_iter()
-        .filter(|num| residue_filter.contains(&((num % (base as u128 - 1)) as u32)))
-        .filter(|num| get_is_nice(*num, base))
-        .map(|num| num.to_string())
-        .collect();
+    let nice_list = match parallel {
+        false => (search_start..search_end)
+            .into_iter()
+            .filter(|num| residue_filter.contains(&((num % (base as u128 - 1)) as u32)))
+            .filter(|num| get_is_nice(*num, base))
+            .map(|num| num.to_string())
+            .collect(),
+        true => (search_start..search_end)
+            .into_par_iter()
+            .filter(|num| residue_filter.contains(&((num % (base as u128 - 1)) as u32)))
+            .filter(|num| get_is_nice(*num, base))
+            .map(|num| num.to_string())
+            .collect(),
+    };
 
     return FieldSubmit {
         id: claim_data.id,
@@ -169,7 +183,7 @@ mod tests {
             near_misses: Some(HashMap::from([("69".to_string(), 10)])),
             nice_list: None,
         };
-        assert_eq!(process_detailed(&claim_data), submit_data);
+        assert_eq!(process_detailed(&claim_data, true), submit_data);
     }
 
     #[test]
@@ -231,7 +245,7 @@ mod tests {
             near_misses: Some(HashMap::new()),
             nice_list: None,
         };
-        assert_eq!(process_detailed(&claim_data), submit_data);
+        assert_eq!(process_detailed(&claim_data, true), submit_data);
     }
 
     #[test]
@@ -333,7 +347,7 @@ mod tests {
             near_misses: Some(HashMap::new()),
             nice_list: None,
         };
-        assert_eq!(process_detailed(&claim_data), submit_data);
+        assert_eq!(process_detailed(&claim_data, true), submit_data);
     }
 
     #[test]
@@ -354,7 +368,7 @@ mod tests {
             near_misses: None,
             nice_list: Some(Vec::from(["69".to_string()])),
         };
-        assert_eq!(process_niceonly(&claim_data), submit_data);
+        assert_eq!(process_niceonly(&claim_data, true), submit_data);
     }
 
     #[test]
@@ -375,7 +389,7 @@ mod tests {
             near_misses: None,
             nice_list: Some(Vec::new()),
         };
-        assert_eq!(process_niceonly(&claim_data), submit_data);
+        assert_eq!(process_niceonly(&claim_data, true), submit_data);
     }
 
     #[test]
@@ -396,6 +410,6 @@ mod tests {
             near_misses: None,
             nice_list: Some(Vec::new()),
         };
-        assert_eq!(process_niceonly(&claim_data), submit_data);
+        assert_eq!(process_niceonly(&claim_data, true), submit_data);
     }
 }

@@ -8,6 +8,9 @@ use std::convert::TryFrom;
 use std::env;
 use std::time::Instant;
 
+extern crate rayon;
+use rayon::prelude::*;
+
 extern crate malachite;
 use malachite::natural::Natural;
 use malachite::num::arithmetic::traits::{CeilingRoot, DivAssignRem, FloorRoot, Mod, Pow};
@@ -83,6 +86,7 @@ pub fn run(
     quiet: bool,
     verbose: bool,
     benchmark: bool,
+    parallel: bool,
     high_bases: bool,
     base: Option<u32>,
     range: Option<u32>,
@@ -109,8 +113,8 @@ pub fn run(
     // process range & compile results
     let submit_data: FieldSubmit = match high_bases {
         false => match mode {
-            Mode::Detailed => process_integer::process_detailed(&claim_data),
-            Mode::Niceonly => process_integer::process_niceonly(&claim_data),
+            Mode::Detailed => process_integer::process_detailed(&claim_data, parallel),
+            Mode::Niceonly => process_integer::process_niceonly(&claim_data, parallel),
         },
         true => match mode {
             Mode::Detailed => process_natural::process_detailed(&claim_data),

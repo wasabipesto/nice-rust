@@ -37,8 +37,12 @@ pub struct Cli {
     #[arg(long)]
     repeat: bool,
 
+    /// Process the range in parallel, improving speed
+    #[arg(long)]
+    parallel: bool,
+
     /// Enable experminetal support for inputs above 2^128
-    /// This allows acces to bases above 97 but is slower
+    /// This allows acces to bases above 97 but is slower and incompatible with --parallel
     #[arg(long, verbatim_doc_comment)]
     high_bases: bool,
 
@@ -71,6 +75,7 @@ fn main() {
             cli.quiet,
             cli.verbose,
             cli.benchmark,
+            cli.parallel,
             cli.high_bases,
             cli.base,
             cli.range,
@@ -86,6 +91,7 @@ fn main() {
         cli.quiet,
         cli.verbose,
         cli.benchmark,
+        cli.parallel,
         cli.high_bases,
         cli.base,
         cli.range,
