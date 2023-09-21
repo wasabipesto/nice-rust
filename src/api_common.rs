@@ -58,9 +58,10 @@ fn get_claim_url(
     if let Some(field_id_val) = field {
         query_url += &("&field=".to_owned() + &field_id_val.to_string());
     }
-    query_url += match high_bases {
-        False => &("&max_base=".to_owned() + &MAX_SUPPORTED_BASE_NORMAL.to_string()),
-        True => &("&max_base=".to_owned() + &MAX_SUPPORTED_BASE_HIGH.to_string()),
+    query_url += &("&max_base=".to_owned());
+    match high_bases {
+        false => query_url += &(MAX_SUPPORTED_BASE_NORMAL.to_string()),
+        true => query_url += &(MAX_SUPPORTED_BASE_HIGH.to_string()),
     };
     query_url
 }

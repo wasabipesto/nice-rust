@@ -108,11 +108,11 @@ pub fn run(
 
     // process range & compile results
     let submit_data: FieldSubmit = match high_bases {
-        False => match mode {
+        false => match mode {
             Mode::Detailed => process_integer::process_detailed(&claim_data),
             Mode::Niceonly => process_integer::process_niceonly(&claim_data),
         },
-        True => match mode {
+        true => match mode {
             Mode::Detailed => process_natural::process_detailed(&claim_data),
             Mode::Niceonly => process_natural::process_niceonly(&claim_data),
         },
