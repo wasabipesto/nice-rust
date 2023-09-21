@@ -40,7 +40,7 @@ fn get_claim_url(
     api_base: &str,
     username: &str,
     base: &Option<u32>,
-    max_range: &Option<u32>,
+    range: &Option<u32>,
     field: &Option<u32>,
 ) -> String {
     let mut query_url = api_base.to_owned();
@@ -52,8 +52,8 @@ fn get_claim_url(
     if let Some(base_val) = base {
         query_url += &("&base=".to_owned() + &base_val.to_string());
     }
-    if let Some(max_range_val) = max_range {
-        query_url += &("&max_range=".to_owned() + &max_range_val.to_string());
+    if let Some(range_val) = range {
+        query_url += &("&max_range=".to_owned() + &range_val.to_string());
     }
     if let Some(field_id_val) = field {
         query_url += &("&field=".to_owned() + &field_id_val.to_string());
@@ -73,11 +73,11 @@ pub fn get_field_from_server(
     api_base: &str,
     username: &str,
     base: &Option<u32>,
-    max_range: &Option<u32>,
+    range: &Option<u32>,
     field: &Option<u32>,
 ) -> FieldClaim {
     let response = reqwest::blocking::get(&get_claim_url(
-        mode, high_bases, api_base, username, base, max_range, field,
+        mode, high_bases, api_base, username, base, range, field,
     ))
     .unwrap_or_else(|e| panic!("Error: {}", e));
     match response.json::<FieldClaim>() {
