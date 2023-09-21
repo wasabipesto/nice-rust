@@ -17,7 +17,7 @@ pub fn process_detailed(claim_data: &FieldClaim) -> FieldSubmit {
     // iterator variables
     let mut n: Natural;
     let mut num = claim_data.search_start.clone();
-    let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
+    let mut digits_indicator = [false; MAX_SUPPORTED_BASE_HIGH as usize];
 
     while num < claim_data.search_end {
         // zero out the indicator
@@ -79,7 +79,7 @@ pub fn process_niceonly(claim_data: &FieldClaim) -> FieldSubmit {
     // output & iterator variables
     let mut nice_list = Vec::new();
     let mut num = &claim_data.search_start - Natural::ONE;
-    let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
+    let mut digits_indicator = [false; MAX_SUPPORTED_BASE_HIGH as usize];
 
     'search_range: while num < claim_data.search_end {
         // increment num
@@ -136,7 +136,7 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn process_detailed_natural_b10() {
+    fn process_detailed_b10() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn process_detailed_natural_b40() {
+    fn process_detailed_b40() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn process_detailed_natural_b80() {
+    fn process_detailed_b80() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -332,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn process_detailed_natural_b120() {
+    fn process_detailed_b120() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -476,7 +476,7 @@ mod tests {
     }
 
     #[test]
-    fn process_niceonly_natural_b10() {
+    fn process_niceonly_b10() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -497,7 +497,7 @@ mod tests {
     }
 
     #[test]
-    fn process_niceonly_natural_b40() {
+    fn process_niceonly_b40() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -518,7 +518,7 @@ mod tests {
     }
 
     #[test]
-    fn process_niceonly_natural_b80() {
+    fn process_niceonly_b80() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -539,7 +539,7 @@ mod tests {
     }
 
     #[test]
-    fn process_niceonly_natural_b120() {
+    fn process_niceonly_b120() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),

@@ -12,6 +12,7 @@ extern crate malachite;
 use malachite::natural::Natural;
 use malachite::num::arithmetic::traits::{CeilingRoot, DivAssignRem, FloorRoot, Mod, Pow};
 use malachite::num::basic::traits::{One, Zero};
+use malachite::num::conversion::traits::Digits;
 
 extern crate reqwest;
 extern crate serde;
@@ -21,7 +22,8 @@ extern crate clap;
 use clap::ValueEnum; // have to derive enum for cli
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const MAX_SUPPORTED_BASE: u32 = 120;
+const MAX_SUPPORTED_BASE_NORMAL: u32 = 97;
+const MAX_SUPPORTED_BASE_HIGH: u32 = 120;
 const NEAR_MISS_CUTOFF_PERCENT: f32 = 0.9;
 const BENCHMARK_DEFAULT_BASE: u32 = 40;
 const BUCNHMARK_DEFAULT_RANGE: u32 = 100000;
@@ -89,7 +91,15 @@ pub fn run(
     let claim_data = if benchmark {
         get_field_benchmark(base, max_range)
     } else {
-        get_field_from_server(&mode, &api_base, &username, &base, &max_range, &field)
+        get_field_from_server(
+            &mode,
+            &high_bases,
+            &api_base,
+            &username,
+            &base,
+            &max_range,
+            &field,
+        )
     };
     if !quiet {
         println!("{:?}", claim_data);

@@ -4,8 +4,73 @@
 
 use super::*;
 
+/// Get the count of unique digits in a number's sqube when represented in a specific base.
+pub fn get_num_uniques(num: u128, base: u32) -> u32 {
+    let num = Natural::from(num);
+
+    // create a boolean array that represents all possible digits
+    let mut digits_indicator: Vec<bool> = vec![false; base as usize];
+
+    // square the number, convert to base and save the digits
+    let squared = (&num).pow(2);
+    for digit in squared.to_digits_asc(&base) {
+        digits_indicator[digit as usize] = true;
+    }
+
+    // cube, convert to base and save the digits
+    let cubed = squared * num;
+    for digit in cubed.to_digits_asc(&base) {
+        digits_indicator[digit as usize] = true;
+    }
+
+    // output the number of unique digits
+    let mut unique_digits = 0;
+    for digit in digits_indicator {
+        if digit {
+            unique_digits += 1
+        }
+    }
+    return unique_digits;
+}
+
 /// Process a field by aggregating statistics on the niceness of numbers in a range.
-pub fn process_detailed(claim_data: &FieldClaim) -> FieldSubmit {}
+pub fn process_detailed(claim_data: &FieldClaim) -> FieldSubmit {
+    let base = claim_data.base;
+    let search_start = u128::try_from(&claim_data.search_start).unwrap();
+    let search_end = u128::try_from(&claim_data.search_end).unwrap();
+
+    // process the range and collect num_uniques for each item in the range
+    let result_map: HashMap<u128, u32> = (search_start..search_end)
+        .into_iter()
+        .map(|num| (num, get_num_uniques(num, base)))
+        .collect();
+
+    // collect the near misses from the result map
+    let near_misses_cutoff = (base as f32 * NEAR_MISS_CUTOFF_PERCENT) as u32;
+    let near_misses: HashMap<String, u32> = result_map
+        .into_iter()
+        .filter(|&(_, value)| value > near_misses_cutoff)
+        .map(|(num, value)| (num.to_string(), value))
+        .collect();
+
+    // collect the distribution of uniqueness across the result map
+    let unique_count: HashMap<u32, u32> = (1..base)
+        .into_iter()
+        .map(|i| {
+            let count = result_map.values().filter(|&&v| v == i).count() as u32;
+            (i, count)
+        })
+        .collect();
+
+    return FieldSubmit {
+        id: claim_data.id,
+        username: claim_data.username.clone(),
+        client_version: CLIENT_VERSION.to_string(),
+        unique_count: Some(unique_count),
+        near_misses: Some(near_misses),
+        nice_list: None,
+    };
+}
 
 /// Process a field by looking for completely nice numbers.
 /// Implements several optimizations over the detailed search.
@@ -17,7 +82,7 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn process_detailed_natural_b10() {
+    fn process_detailed_b10() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -49,7 +114,7 @@ mod tests {
     }
 
     #[test]
-    fn process_detailed_natural_b40() {
+    fn process_detailed_b40() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -111,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn process_detailed_natural_b80() {
+    fn process_detailed_b80() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -213,7 +278,7 @@ mod tests {
     }
 
     #[test]
-    fn process_detailed_natural_b120() {
+    fn process_detailed_b120() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -354,91 +419,5 @@ mod tests {
             nice_list: None,
         };
         assert_eq!(process_detailed(&claim_data), submit_data);
-    }
-
-    #[test]
-    fn process_niceonly_natural_b10() {
-        let claim_data = FieldClaim {
-            id: 0,
-            username: "benchmark".to_owned(),
-            base: 10,
-            search_start: Natural::from(47 as u128),
-            search_end: Natural::from(100 as u128),
-            search_range: Natural::from(53 as u128),
-        };
-        let submit_data = FieldSubmit {
-            id: claim_data.id.clone(),
-            username: claim_data.username.clone(),
-            client_version: CLIENT_VERSION.to_string(),
-            unique_count: None,
-            near_misses: None,
-            nice_list: Some(Vec::from(["69".to_string()])),
-        };
-        assert_eq!(process_niceonly(&claim_data), submit_data);
-    }
-
-    #[test]
-    fn process_niceonly_natural_b40() {
-        let claim_data = FieldClaim {
-            id: 0,
-            username: "benchmark".to_owned(),
-            base: 40,
-            search_start: Natural::from(916284264916 as u128),
-            search_end: Natural::from(916284264916 + 10000 as u128),
-            search_range: Natural::from(10000 as u128),
-        };
-        let submit_data = FieldSubmit {
-            id: claim_data.id.clone(),
-            username: claim_data.username.clone(),
-            client_version: CLIENT_VERSION.to_string(),
-            unique_count: None,
-            near_misses: None,
-            nice_list: Some(Vec::new()),
-        };
-        assert_eq!(process_niceonly(&claim_data), submit_data);
-    }
-
-    #[test]
-    fn process_niceonly_natural_b80() {
-        let claim_data = FieldClaim {
-            id: 0,
-            username: "benchmark".to_owned(),
-            base: 80,
-            search_start: Natural::from(653245554420798943087177909799 as u128),
-            search_end: Natural::from(653245554420798943087177909799 + 10000 as u128),
-            search_range: Natural::from(10000 as u128),
-        };
-        let submit_data = FieldSubmit {
-            id: claim_data.id.clone(),
-            username: claim_data.username.clone(),
-            client_version: CLIENT_VERSION.to_string(),
-            unique_count: None,
-            near_misses: None,
-            nice_list: Some(Vec::new()),
-        };
-        assert_eq!(process_niceonly(&claim_data), submit_data);
-    }
-
-    #[test]
-    fn process_niceonly_natural_b120() {
-        let claim_data = FieldClaim {
-            id: 0,
-            username: "benchmark".to_owned(),
-            base: 120,
-            search_start: Natural::from_str("16117196090075248994613996554363597629408239219454")
-                .unwrap(),
-            search_end: Natural::from_str("16117196090075248994613996554363597629408239319454")
-                .unwrap(),
-            search_range: Natural::from(10000 as u128),
-        };
-        let submit_data = FieldSubmit {
-            id: claim_data.id.clone(),
-            username: claim_data.username.clone(),
-            client_version: CLIENT_VERSION.to_string(),
-            unique_count: None,
-            near_misses: None,
-            nice_list: Some(Vec::new()),
-        };
-        assert_eq!(process_niceonly(&claim_data), submit_data);
     }
 }
