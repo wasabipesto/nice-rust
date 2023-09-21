@@ -9,50 +9,54 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Cli {
-    #[arg(
-        value_enum,
-        default_value = "detailed",
-        help = "the checkout mode to use"
-    )]
+    /// The checkout mode to use
+    #[arg(value_enum, default_value = "detailed")]
     mode: nice_rust::Mode,
 
-    #[arg(
-        long,
-        default_value = "https://nicenumbers.net/api",
-        help = "the base API URL to connect to"
-    )]
+    /// The base API URL to connect to
+    #[arg(long, default_value = "https://nicenumbers.net/api")]
     api_base: String,
 
-    #[arg(
-        short,
-        long,
-        default_value = "anonymous",
-        help = "the username to send alongside your contribution"
-    )]
+    /// The username to send alongside your contribution
+    #[arg(short, long, default_value = "anonymous")]
     username: String,
 
-    #[arg(short, long, help = "suppress some output")]
+    /// Suppress some output
+    #[arg(short, long)]
     quiet: bool,
 
-    #[arg(short, long, help = "show additional output")]
+    /// Show additional output
+    #[arg(short, long)]
     verbose: bool,
 
-    #[arg(long, help = "run an offline benchmark")]
+    /// Run an offline benchmark
+    /// Default: base 40, range 100000
+    #[arg(long, verbatim_doc_comment)]
     benchmark: bool,
 
-    #[arg(long, help = "run indefinitely with the current settings")]
+    /// Run indefinitely with the current settings
+    /// Ideal for running in the background
+    #[arg(long, verbatim_doc_comment)]
     repeat: bool,
 
-    #[arg(long, help = "enable support for bases above 97")]
+    /// Enable experminetal support for inputs above 2^128
+    /// This allows acces to bases above 97 but is slower
+    #[arg(long, verbatim_doc_comment)]
     high_bases: bool,
 
-    #[arg(short, long, help = "request a range in a specific base")]
+    /// Request a range in a specific base
+    /// The server may deny this request based on capacity
+    #[arg(short, long, verbatim_doc_comment)]
     base: Option<u32>,
 
-    #[arg(short = 'r', long, help = "request a differently-sized range")]
-    max_range: Option<u32>,
+    /// Request a differently-sized range
+    /// The server may deny this request based on capacity
+    #[arg(short, long, verbatim_doc_comment)]
+    range: Option<u32>,
 
-    #[arg(long, help = "request a specific field by id")]
+    /// Request a specific field by ID
+    /// The same username must be used to reclaim a field
+    #[arg(long, verbatim_doc_comment)]
     field: Option<u32>,
 }
 
@@ -71,7 +75,7 @@ fn main() {
             cli.benchmark,
             cli.high_bases,
             cli.base,
-            cli.max_range,
+            cli.range,
             cli.field,
         );
     }
@@ -86,7 +90,7 @@ fn main() {
         cli.benchmark,
         cli.high_bases,
         cli.base,
-        cli.max_range,
+        cli.range,
         cli.field,
     );
 }

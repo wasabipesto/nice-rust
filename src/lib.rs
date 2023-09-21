@@ -85,11 +85,11 @@ pub fn run(
     benchmark: bool,
     high_bases: bool,
     base: Option<u32>,
-    max_range: Option<u32>,
+    range: Option<u32>,
     field: Option<u32>,
 ) {
     let claim_data = if benchmark {
-        get_field_benchmark(base, max_range)
+        get_field_benchmark(base, range)
     } else {
         get_field_from_server(
             &mode,
@@ -97,7 +97,7 @@ pub fn run(
             &api_base,
             &username,
             &base,
-            &max_range,
+            &range,
             &field,
         )
     };
