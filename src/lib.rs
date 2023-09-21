@@ -32,8 +32,8 @@ use api_common::{
     submit_field_to_server,
 };
 
+mod process_integer;
 mod process_natural;
-use process_natural::{process_detailed_natural, process_niceonly_natural};
 
 mod residue_filter;
 use self::residue_filter::get_residue_filter;
@@ -97,8 +97,8 @@ pub fn run(
 
     // process range & compile results
     let submit_data: FieldSubmit = match mode {
-        Mode::Detailed => process_detailed_natural(&claim_data),
-        Mode::Niceonly => process_niceonly_natural(&claim_data),
+        Mode::Detailed => process_natural::process_detailed(&claim_data),
+        Mode::Niceonly => process_natural::process_niceonly(&claim_data),
     };
 
     if !quiet {

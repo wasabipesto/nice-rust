@@ -1,134 +1,15 @@
 //! A module with "nice" calculation utilities.
-//! We will iterate over n as a Natural directly so we can process arbitrarily high ranges.
+//! We will iterate over n as u128 (max 3.4e38), but expand it into Natural for n^2 and n^3.
+//! That means we can go up through base 97 (5.6e37 to 2.6e38) but not base 98 (3.1e38 to 6.7e38).
 
 use super::*;
 
 /// Process a field by aggregating statistics on the niceness of numbers in a range.
-pub fn process_detailed(claim_data: &FieldClaim) -> FieldSubmit {
-    let base = claim_data.base;
-    let base_natural = Natural::from(base);
-    let near_misses_cutoff = (base as f32 * NEAR_MISS_CUTOFF_PERCENT) as u32;
-
-    // output variables
-    let mut unique_digits: u32;
-    let mut near_misses: HashMap<String, u32> = HashMap::new();
-    let mut unique_count_vec = vec![0; base as usize];
-
-    // iterator variables
-    let mut n: Natural;
-    let mut num = claim_data.search_start.clone();
-    let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
-
-    while num < claim_data.search_end {
-        // zero out the indicator
-        digits_indicator.iter_mut().for_each(|x| *x = false);
-
-        // square the number and save those digits
-        n = (&num).pow(2);
-        while n > 0 {
-            let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
-            digits_indicator[remainder] = true;
-        }
-
-        // cube the number and save those digits
-        n = (&num).pow(3);
-        while n > 0 {
-            let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
-            digits_indicator[remainder] = true;
-        }
-
-        // count the digits, update the unique count
-        unique_digits = digits_indicator.iter().filter(|&&x| x).count() as u32;
-        unique_count_vec[unique_digits as usize - 1] += 1;
-
-        // save if the number is pretty nice
-        if unique_digits > near_misses_cutoff {
-            near_misses.insert(num.to_string(), unique_digits);
-        }
-
-        // increment num
-        num += Natural::ONE;
-    }
-
-    // sum unique counts from vec
-    let unique_count = unique_count_vec
-        .iter()
-        .enumerate()
-        .map(|(i, &x)| (i as u32 + 1, x))
-        .collect();
-
-    return FieldSubmit {
-        id: claim_data.id,
-        username: claim_data.username.clone(),
-        client_version: CLIENT_VERSION.to_string(),
-        unique_count: Some(unique_count),
-        near_misses: Some(near_misses),
-        nice_list: None,
-    };
-}
+pub fn process_detailed(claim_data: &FieldClaim) -> FieldSubmit {}
 
 /// Process a field by looking for completely nice numbers.
 /// Implements several optimizations over the detailed search.
-pub fn process_niceonly(claim_data: &FieldClaim) -> FieldSubmit {
-    let base = claim_data.base;
-    let base_natural = Natural::from(base);
-    let base_natural_sub_one = Natural::from(base) - Natural::ONE;
-
-    let residue_filter = get_residue_filter(&base);
-
-    // output & iterator variables
-    let mut nice_list = Vec::new();
-    let mut num = &claim_data.search_start - Natural::ONE;
-    let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
-
-    'search_range: while num < claim_data.search_end {
-        // increment num
-        num += Natural::ONE;
-
-        // check residue
-        let remainder = (&num).mod_op(&base_natural_sub_one);
-        let residue = u32::try_from(&remainder).unwrap();
-        if !residue_filter.contains(&residue) {
-            continue;
-        }
-
-        // zero out the indicator
-        digits_indicator.iter_mut().for_each(|x| *x = false);
-
-        // square the number and check those digits
-        let squared = (&num).pow(2);
-        let mut n = squared.clone();
-        while n > 0 {
-            let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
-            if digits_indicator[remainder] {
-                continue 'search_range;
-            }
-            digits_indicator[remainder] = true;
-        }
-
-        // cube the number and check those digits
-        let mut n = squared * &num;
-        while n > 0 {
-            let remainder = usize::try_from(&(n.div_assign_rem(&base_natural))).unwrap();
-            if digits_indicator[remainder] {
-                continue 'search_range;
-            }
-            digits_indicator[remainder] = true;
-        }
-
-        // save the number!
-        nice_list.push(num.to_string());
-    }
-
-    return FieldSubmit {
-        id: claim_data.id,
-        username: claim_data.username.clone(),
-        client_version: CLIENT_VERSION.to_string(),
-        unique_count: None,
-        near_misses: None,
-        nice_list: Some(nice_list),
-    };
-}
+pub fn process_niceonly(claim_data: &FieldClaim) -> FieldSubmit {}
 
 #[cfg(test)]
 mod tests {
