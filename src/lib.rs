@@ -81,6 +81,7 @@ pub fn run(
     quiet: bool,
     verbose: bool,
     benchmark: bool,
+    high_bases: bool,
     base: Option<u32>,
     max_range: Option<u32>,
     field: Option<u32>,
@@ -96,9 +97,15 @@ pub fn run(
     let before = Instant::now();
 
     // process range & compile results
-    let submit_data: FieldSubmit = match mode {
-        Mode::Detailed => process_natural::process_detailed(&claim_data),
-        Mode::Niceonly => process_natural::process_niceonly(&claim_data),
+    let submit_data: FieldSubmit = match high_bases {
+        False => match mode {
+            Mode::Detailed => process_integer::process_detailed(&claim_data),
+            Mode::Niceonly => process_integer::process_niceonly(&claim_data),
+        },
+        True => match mode {
+            Mode::Detailed => process_natural::process_detailed(&claim_data),
+            Mode::Niceonly => process_natural::process_niceonly(&claim_data),
+        },
     };
 
     if !quiet {

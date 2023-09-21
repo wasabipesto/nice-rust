@@ -43,6 +43,9 @@ pub struct Cli {
     #[arg(long, help = "run indefinitely with the current settings")]
     repeat: bool,
 
+    #[arg(long, help = "enable support for bases above 97")]
+    high_bases: bool,
+
     #[arg(short, long, help = "request a range in a specific base")]
     base: Option<u32>,
 
@@ -66,6 +69,7 @@ fn main() {
             cli.quiet,
             cli.verbose,
             cli.benchmark,
+            cli.high_bases,
             cli.base,
             cli.max_range,
             cli.field,
@@ -80,6 +84,7 @@ fn main() {
         cli.quiet,
         cli.verbose,
         cli.benchmark,
+        cli.high_bases,
         cli.base,
         cli.max_range,
         cli.field,
