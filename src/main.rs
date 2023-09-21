@@ -29,14 +29,12 @@ pub struct Cli {
     #[arg(short, long)]
     verbose: bool,
 
-    /// Run an offline benchmark
-    /// Default: base 40, range 100000
-    #[arg(long, verbatim_doc_comment)]
+    /// Run an offline benchmark [default: base 40, range 100000]
+    #[arg(long)]
     benchmark: bool,
 
     /// Run indefinitely with the current settings
-    /// Ideal for running in the background
-    #[arg(long, verbatim_doc_comment)]
+    #[arg(long)]
     repeat: bool,
 
     /// Enable experminetal support for inputs above 2^128
