@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   OUTPUT_PREFIX: nice
@@ -83,15 +84,14 @@ jobs:
           target: ${{ matrix.platform.target }}
           toolchain: stable
           args: "--locked --release"
-        if: ${{ !matrix.platform.skip_tests }}
 
       - name: Get version and construct output filename
         id: build_info
+        shell: bash
         run: |
-          version=$(cat Cargo.toml | grep -oP 'version = "\K[^"]+')
+          version=$(cat Cargo.toml | ack -o 'version = "\K[^"]+' | head -1)
           filename="${{ env.OUTPUT_PREFIX }}-$version-${{ matrix.platform.build_name }}"
-          echo "::set-output name=version::$version"
-          echo "::set-output name=filename::$filename"
+          echo "filename=$filename" >> $GITHUB_OUTPUT
       
       - name: Package as archive
         shell: bash
@@ -109,3 +109,4 @@ jobs:
         with:
           name: ${{ steps.build_info.outputs.filename }}
           path: "${{ steps.build_info.outputs.filename }}.*"
+          retention-days: 10
