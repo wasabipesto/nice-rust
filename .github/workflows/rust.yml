@@ -84,29 +84,34 @@ jobs:
           target: ${{ matrix.platform.target }}
           toolchain: stable
           args: "--locked --release"
-
-      - name: Get version and construct output filename
-        id: build_info
+      
+      - name: Package as archive (Linux)
+        if: ${{ !contains(matrix.platform.os, 'windows') }}
+        id: archive_linux
         shell: bash
         run: |
-          version=$(cat Cargo.toml | ack -o 'version = "\K[^"]+' | head -1)
+          version=$(cat Cargo.toml | grep -oP 'version = "\K[^"]+' | head -1)
           filename="${{ env.OUTPUT_PREFIX }}-$version-${{ matrix.platform.build_name }}"
           echo "filename=$filename" >> $GITHUB_OUTPUT
-      
-      - name: Package as archive
-        shell: bash
-        run: |
           cd target/${{ matrix.platform.target }}/release
-          if [[ "${{ matrix.platform.os }}" == "windows-latest" ]]; then
-            7z a ../../../${{ steps.build_info.outputs.filename }}.zip nice-rust.exe
-          else
-            tar czvf ../../../${{ steps.build_info.outputs.filename }}.tar.gz nice-rust
-          fi
+          tar czvf ../../../$filename.tar.gz nice-rust
+          cd -
+      
+      - name: Package as archive (Windows)
+        if: ${{ contains(matrix.platform.os, 'windows') }}
+        id: archive_windows
+        shell: pwsh
+        run: |
+          $version = (Get-Content Cargo.toml | Select-String -Pattern 'version = "(.+)"').Matches.Groups[1].Value
+          $filename = "${env:OUTPUT_PREFIX}-$version-${matrix.platform.build_name}"
+          Write-Host "filename=$filename" >> $env:GITHUB_ENV
+          cd target/${{ matrix.platform.target }}/release
+          7z a ../../../$filename.zip nice-rust.exe
           cd -
       
       - name: Publish release artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.build_info.outputs.filename }}
-          path: "${{ steps.build_info.outputs.filename }}.*"
+          name: ${{ contains(matrix.platform.os, 'windows') && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
+          path: "${{ env.OUTPUT_PREFIX }}-*"
           retention-days: 10
