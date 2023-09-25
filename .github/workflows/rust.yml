@@ -85,25 +85,27 @@ jobs:
           args: "--locked --release"
         if: ${{ !matrix.platform.skip_tests }}
 
-      - name: Get version for filename
-        id: cargo_get_version
-        uses: nicolaiunrein/cargo-get@master
-        with:
-          subcommand: package.version
+      - name: Get version and construct output filename
+        id: build_info
+        run: |
+          version=$(cat Cargo.toml | grep -oP 'version = "\K[^"]+')
+          filename="${{ env.OUTPUT_PREFIX }}-$version-${{ matrix.platform.build_name }}"
+          echo "::set-output name=version::$version"
+          echo "::set-output name=filename::$filename"
       
       - name: Package as archive
         shell: bash
         run: |
           cd target/${{ matrix.platform.target }}/release
           if [[ "${{ matrix.platform.os }}" == "windows-latest" ]]; then
-            7z a ../../../${{ env.OUTPUT_PREFIX }}-${{ steps.cargo_get_version.outputs[0] }}-${{ matrix.platform.build_name }}-${{ github.sha }}.zip ${{ steps.cargo_output.outputs.cargo_name }}.exe
+            7z a ../../../${{ steps.build_info.outputs.filename }}.zip nice-rust.exe
           else
-            tar czvf ../../../${{ env.OUTPUT_PREFIX }}-${{ steps.cargo_get_version.outputs[0] }}-${{ matrix.platform.build_name }}-${{ github.sha }}.tar.gz ${{ steps.cargo_output.outputs.cargo_name }}
+            tar czvf ../../../${{ steps.build_info.outputs.filename }}.tar.gz nice-rust
           fi
           cd -
       
       - name: Publish release artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.OUTPUT_PREFIX }}-${{ steps.cargo_get_version.outputs[0] }}-${{ matrix.platform.build_name }}-${{ github.sha }}
-          path: "${{ env.OUTPUT_PREFIX }}-*"
+          name: ${{ steps.build_info.outputs.filename }}
+          path: "${{ steps.build_info.outputs.filename }}.*"
