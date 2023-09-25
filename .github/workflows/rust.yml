@@ -95,7 +95,7 @@ jobs:
           args: "--locked --release"
       
       - name: Package as archive (Linux)
-        if: ${{ matrix.platform.save_output && !contains(matrix.platform.os, 'windows') }}
+        if: ${{ matrix.platform.save_output && matrix.platform.os != 'windows-latest' }}
         id: archive_linux
         shell: bash
         run: |
@@ -107,7 +107,7 @@ jobs:
           cd -
       
       - name: Package as archive (Windows)
-        if: ${{ matrix.platform.save_output && contains(matrix.platform.os, 'windows') }}
+        if: ${{ matrix.platform.save_output && matrix.platform.os == 'windows-latest' }}
         id: archive_windows
         shell: pwsh
         run: |
@@ -122,6 +122,6 @@ jobs:
         if: ${{ matrix.platform.save_output }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ contains(matrix.platform.os, 'windows') == 'true' && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
+          name: ${{ matrix.platform.os == 'windows-latest' && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
           path: "${{ env.OUTPUT_PREFIX }}-*"
           retention-days: 30
