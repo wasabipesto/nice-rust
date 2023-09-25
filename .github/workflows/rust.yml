@@ -90,12 +90,10 @@ jobs:
         id: archive_linux
         shell: bash
         run: |
-          version=$(cat Cargo.toml | grep -oP 'version = "\K[^"]+' | head -1)
+          version=$(cat Cargo.toml | grep -o 'version = "[^"]*' | sed 's/version = "//' | head -1)
           filename="${{ env.OUTPUT_PREFIX }}-$version-${{ matrix.platform.build_name }}"
+          tar czvf $filename.tar.gz target/${{ matrix.platform.target }}/release/nice-rust
           echo "filename=$filename" >> $GITHUB_OUTPUT
-          cd target/${{ matrix.platform.target }}/release
-          tar czvf ../../../$filename.tar.gz nice-rust
-          cd -
       
       - name: Package as archive (Windows)
         if: ${{ contains(matrix.platform.os, 'windows') }}
@@ -103,11 +101,9 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content Cargo.toml | Select-String -Pattern 'version = "(.+)"').Matches.Groups[1].Value
-          $filename = "${env:OUTPUT_PREFIX}-$version-${matrix.platform.build_name}"
-          Write-Host "filename=$filename" >> $env:GITHUB_ENV
-          cd target/${{ matrix.platform.target }}/release
-          7z a ../../../$filename.zip nice-rust.exe
-          cd -
+          $filename = "${{ env.OUTPUT_PREFIX }}-$version-${{ matrix.platform.build_name }}"
+          7z a $filename.zip target/${{ matrix.platform.target }}/release/nice-rust.exe
+          Write-Host "filename=$filename" >> $env:GITHUB_OUTPUT
       
       - name: Publish release artifacts
         uses: actions/upload-artifact@v3
