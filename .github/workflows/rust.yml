@@ -22,41 +22,50 @@ jobs:
       matrix:
         platform:
 
-          - build_name: Linux-x86_64-gnu
+          - build_name: Linux-x86_64
             os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
+            save_output: true
 
           - build_name: Linux-x86_64-musl
             os: ubuntu-20.04
             target: x86_64-unknown-linux-musl
+            save_output: false
 
-          - build_name: Linux-aarch64-gnu
+          - build_name: Linux-aarch64
             os: ubuntu-20.04
             target: aarch64-unknown-linux-gnu
+            save_output: true
 
           - build_name: Linux-aarch64-musl
             os: ubuntu-20.04
             target: aarch64-unknown-linux-musl
+            save_output: false
 
-          - build_name: Linux-armv7-gnu
+          - build_name: Linux-armv7
             os: ubuntu-20.04
             target: armv7-unknown-linux-gnueabihf
+            save_output: true
 
           - build_name: Linux-arm-musl
             os: ubuntu-20.04
             target: arm-unknown-linux-musleabi
+            save_output: false
 
-          - build_name: Linux-riscv64gc-gnu
+          - build_name: Linux-riscv64gc
             os: ubuntu-20.04
             target: riscv64gc-unknown-linux-gnu
+            save_output: false
 
           - build_name: Windows-x86_64
             os: windows-latest
             target: x86_64-pc-windows-msvc
+            save_output: true
 
           - build_name: Darwin-x86_64
             os: macOS-latest
             target: x86_64-apple-darwin
+            save_output: true
 
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +95,7 @@ jobs:
           args: "--locked --release"
       
       - name: Package as archive (Linux)
-        if: ${{ !contains(matrix.platform.os, 'windows') }}
+        if: ${{ matrix.platform.save_output && !contains(matrix.platform.os, 'windows') }}
         id: archive_linux
         shell: bash
         run: |
@@ -98,7 +107,7 @@ jobs:
           cd -
       
       - name: Package as archive (Windows)
-        if: ${{ contains(matrix.platform.os, 'windows') }}
+        if: ${{ matrix.platform.save_output && contains(matrix.platform.os, 'windows') }}
         id: archive_windows
         shell: pwsh
         run: |
@@ -110,8 +119,9 @@ jobs:
           cd -
       
       - name: Publish release artifacts
+        if: ${{ matrix.platform.save_output }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ contains(matrix.platform.os, 'windows') && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
+          name: ${{ contains(matrix.platform.os, 'windows') == true && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
           path: "${{ env.OUTPUT_PREFIX }}-*"
-          retention-days: 10
+          retention-days: 30
