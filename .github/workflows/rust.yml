@@ -122,6 +122,6 @@ jobs:
         if: ${{ matrix.platform.save_output }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ contains(matrix.platform.os, 'windows') == true && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
+          name: ${{ contains(matrix.platform.os, 'windows') == 'true' && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
           path: "${{ env.OUTPUT_PREFIX }}-*"
           retention-days: 30
