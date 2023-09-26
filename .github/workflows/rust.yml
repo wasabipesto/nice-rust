@@ -113,7 +113,7 @@ jobs:
         run: |
           $version = (Get-Content Cargo.toml | Select-String -Pattern 'version = "(.+)"').Matches.Groups[1].Value
           $filename = "${{ env.OUTPUT_PREFIX }}-$version-${{ matrix.platform.build_name }}"
-          Write-Host "filename=$filename" >> $env:GITHUB_OUTPUT
+          echo "filename=$filename" >> $env:GITHUB_OUTPUT
           cd target/${{ matrix.platform.target }}/release
           7z a ../../../$filename.zip nice-rust.exe
           cd -
