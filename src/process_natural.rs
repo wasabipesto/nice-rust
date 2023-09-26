@@ -1,9 +1,10 @@
 //! A module with "nice" calculation utilities.
+//! We will iterate over n as a Natural directly so we can process arbitrarily high ranges.
 
 use super::*;
 
 /// Process a field by aggregating statistics on the niceness of numbers in a range.
-pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
+pub fn process_detailed(claim_data: &FieldClaim) -> FieldSubmit {
     let base = claim_data.base;
     let base_natural = Natural::from(base);
     let near_misses_cutoff = (base as f32 * NEAR_MISS_CUTOFF_PERCENT) as u32;
@@ -16,7 +17,7 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
     // iterator variables
     let mut n: Natural;
     let mut num = claim_data.search_start.clone();
-    let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
+    let mut digits_indicator = [false; MAX_SUPPORTED_BASE_HIGH as usize];
 
     while num < claim_data.search_end {
         // zero out the indicator
@@ -68,7 +69,7 @@ pub fn process_detailed_natural(claim_data: &FieldClaim) -> FieldSubmit {
 
 /// Process a field by looking for completely nice numbers.
 /// Implements several optimizations over the detailed search.
-pub fn process_niceonly_natural(claim_data: &FieldClaim) -> FieldSubmit {
+pub fn process_niceonly(claim_data: &FieldClaim) -> FieldSubmit {
     let base = claim_data.base;
     let base_natural = Natural::from(base);
     let base_natural_sub_one = Natural::from(base) - Natural::ONE;
@@ -78,7 +79,7 @@ pub fn process_niceonly_natural(claim_data: &FieldClaim) -> FieldSubmit {
     // output & iterator variables
     let mut nice_list = Vec::new();
     let mut num = &claim_data.search_start - Natural::ONE;
-    let mut digits_indicator = [false; MAX_SUPPORTED_BASE as usize];
+    let mut digits_indicator = [false; MAX_SUPPORTED_BASE_HIGH as usize];
 
     'search_range: while num < claim_data.search_end {
         // increment num
@@ -135,7 +136,7 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn process_detailed_natural_b10() {
+    fn process_detailed_b10() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -163,11 +164,11 @@ mod tests {
             near_misses: Some(HashMap::from([("69".to_string(), 10)])),
             nice_list: None,
         };
-        assert_eq!(process_detailed_natural(&claim_data), submit_data);
+        assert_eq!(process_detailed(&claim_data), submit_data);
     }
 
     #[test]
-    fn process_detailed_natural_b40() {
+    fn process_detailed_b40() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -225,11 +226,11 @@ mod tests {
             near_misses: Some(HashMap::new()),
             nice_list: None,
         };
-        assert_eq!(process_detailed_natural(&claim_data), submit_data);
+        assert_eq!(process_detailed(&claim_data), submit_data);
     }
 
     #[test]
-    fn process_detailed_natural_b80() {
+    fn process_detailed_b80() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -327,11 +328,11 @@ mod tests {
             near_misses: Some(HashMap::new()),
             nice_list: None,
         };
-        assert_eq!(process_detailed_natural(&claim_data), submit_data);
+        assert_eq!(process_detailed(&claim_data), submit_data);
     }
 
     #[test]
-    fn process_detailed_natural_b120() {
+    fn process_detailed_b120() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -471,11 +472,11 @@ mod tests {
             near_misses: Some(HashMap::new()),
             nice_list: None,
         };
-        assert_eq!(process_detailed_natural(&claim_data), submit_data);
+        assert_eq!(process_detailed(&claim_data), submit_data);
     }
 
     #[test]
-    fn process_niceonly_natural_b10() {
+    fn process_niceonly_b10() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -492,11 +493,11 @@ mod tests {
             near_misses: None,
             nice_list: Some(Vec::from(["69".to_string()])),
         };
-        assert_eq!(process_niceonly_natural(&claim_data), submit_data);
+        assert_eq!(process_niceonly(&claim_data), submit_data);
     }
 
     #[test]
-    fn process_niceonly_natural_b40() {
+    fn process_niceonly_b40() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -513,11 +514,11 @@ mod tests {
             near_misses: None,
             nice_list: Some(Vec::new()),
         };
-        assert_eq!(process_niceonly_natural(&claim_data), submit_data);
+        assert_eq!(process_niceonly(&claim_data), submit_data);
     }
 
     #[test]
-    fn process_niceonly_natural_b80() {
+    fn process_niceonly_b80() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -534,11 +535,11 @@ mod tests {
             near_misses: None,
             nice_list: Some(Vec::new()),
         };
-        assert_eq!(process_niceonly_natural(&claim_data), submit_data);
+        assert_eq!(process_niceonly(&claim_data), submit_data);
     }
 
     #[test]
-    fn process_niceonly_natural_b120() {
+    fn process_niceonly_b120() {
         let claim_data = FieldClaim {
             id: 0,
             username: "benchmark".to_owned(),
@@ -557,6 +558,6 @@ mod tests {
             near_misses: None,
             nice_list: Some(Vec::new()),
         };
-        assert_eq!(process_niceonly_natural(&claim_data), submit_data);
+        assert_eq!(process_niceonly(&claim_data), submit_data);
     }
 }

@@ -8,10 +8,14 @@ use std::convert::TryFrom;
 use std::env;
 use std::time::Instant;
 
+extern crate rayon;
+use rayon::prelude::*;
+
 extern crate malachite;
 use malachite::natural::Natural;
 use malachite::num::arithmetic::traits::{CeilingRoot, DivAssignRem, FloorRoot, Mod, Pow};
 use malachite::num::basic::traits::{One, Zero};
+use malachite::num::conversion::traits::Digits;
 
 extern crate reqwest;
 extern crate serde;
@@ -21,7 +25,8 @@ extern crate clap;
 use clap::ValueEnum; // have to derive enum for cli
 
 const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const MAX_SUPPORTED_BASE: u32 = 120;
+const MAX_SUPPORTED_BASE_NORMAL: u32 = 97;
+const MAX_SUPPORTED_BASE_HIGH: u32 = 120;
 const NEAR_MISS_CUTOFF_PERCENT: f32 = 0.9;
 const BENCHMARK_DEFAULT_BASE: u32 = 40;
 const BUCNHMARK_DEFAULT_RANGE: u32 = 100000;
@@ -32,8 +37,8 @@ use api_common::{
     submit_field_to_server,
 };
 
+mod process_integer;
 mod process_natural;
-use process_natural::{process_detailed_natural, process_niceonly_natural};
 
 mod residue_filter;
 use self::residue_filter::get_residue_filter;
@@ -81,14 +86,24 @@ pub fn run(
     quiet: bool,
     verbose: bool,
     benchmark: bool,
+    parallel: bool,
+    high_bases: bool,
     base: Option<u32>,
-    max_range: Option<u32>,
+    range: Option<u32>,
     field: Option<u32>,
 ) {
     let claim_data = if benchmark {
-        get_field_benchmark(base, max_range)
+        get_field_benchmark(base, range)
     } else {
-        get_field_from_server(&mode, &api_base, &username, &base, &max_range, &field)
+        get_field_from_server(
+            &mode,
+            &high_bases,
+            &api_base,
+            &username,
+            &base,
+            &range,
+            &field,
+        )
     };
     if !quiet {
         println!("{:?}", claim_data);
@@ -96,9 +111,15 @@ pub fn run(
     let before = Instant::now();
 
     // process range & compile results
-    let submit_data: FieldSubmit = match mode {
-        Mode::Detailed => process_detailed_natural(&claim_data),
-        Mode::Niceonly => process_niceonly_natural(&claim_data),
+    let submit_data: FieldSubmit = match high_bases {
+        false => match mode {
+            Mode::Detailed => process_integer::process_detailed(&claim_data, parallel),
+            Mode::Niceonly => process_integer::process_niceonly(&claim_data, parallel),
+        },
+        true => match mode {
+            Mode::Detailed => process_natural::process_detailed(&claim_data),
+            Mode::Niceonly => process_natural::process_niceonly(&claim_data),
+        },
     };
 
     if !quiet {

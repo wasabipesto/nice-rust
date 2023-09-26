@@ -1,13 +1,31 @@
 extern crate nice_rust;
 
 #[test]
-fn integration_niceonly_benchmark() {
+fn integration_niceonly_integer_benchmark() {
     nice_rust::run(
         nice_rust::Mode::Niceonly,
         "https://nicenumbers.net/api".to_string(),
         "anonymous".to_string(),
         false,
         false,
+        true,
+        true,
+        false,
+        None,
+        Some(1000000),
+        None,
+    );
+}
+#[test]
+fn integration_niceonly_natural_benchmark() {
+    nice_rust::run(
+        nice_rust::Mode::Niceonly,
+        "https://nicenumbers.net/api".to_string(),
+        "anonymous".to_string(),
+        false,
+        false,
+        true,
+        true,
         true,
         None,
         Some(1000000),
@@ -16,13 +34,31 @@ fn integration_niceonly_benchmark() {
 }
 
 #[test]
-fn integration_detailed_benchmark() {
+fn integration_detailed_integer_benchmark() {
     nice_rust::run(
         nice_rust::Mode::Detailed,
         "https://nicenumbers.net/api".to_string(),
         "anonymous".to_string(),
         false,
         false,
+        true,
+        true,
+        false,
+        None,
+        Some(100000),
+        None,
+    );
+}
+#[test]
+fn integration_detailed_natural_benchmark() {
+    nice_rust::run(
+        nice_rust::Mode::Detailed,
+        "https://nicenumbers.net/api".to_string(),
+        "anonymous".to_string(),
+        false,
+        false,
+        true,
+        true,
         true,
         None,
         Some(100000),
@@ -31,7 +67,7 @@ fn integration_detailed_benchmark() {
 }
 
 #[test]
-fn integration_niceonly_standard() {
+fn integration_niceonly_integer_standard() {
     nice_rust::run(
         nice_rust::Mode::Niceonly,
         "https://nicenumbers.net/api".to_string(),
@@ -39,6 +75,24 @@ fn integration_niceonly_standard() {
         false,
         false,
         false,
+        true,
+        false,
+        None,
+        Some(1000000),
+        None,
+    );
+}
+#[test]
+fn integration_niceonly_natural_standard() {
+    nice_rust::run(
+        nice_rust::Mode::Niceonly,
+        "https://nicenumbers.net/api".to_string(),
+        "anonymous".to_string(),
+        false,
+        false,
+        false,
+        true,
+        true,
         None,
         Some(1000000),
         None,
@@ -46,7 +100,7 @@ fn integration_niceonly_standard() {
 }
 
 #[test]
-fn integration_detailed_standard() {
+fn integration_detailed_integer_standard() {
     nice_rust::run(
         nice_rust::Mode::Detailed,
         "https://nicenumbers.net/api".to_string(),
@@ -54,6 +108,24 @@ fn integration_detailed_standard() {
         false,
         false,
         false,
+        true,
+        false,
+        None,
+        Some(100000),
+        None,
+    );
+}
+#[test]
+fn integration_detailed_natural_standard() {
+    nice_rust::run(
+        nice_rust::Mode::Detailed,
+        "https://nicenumbers.net/api".to_string(),
+        "anonymous".to_string(),
+        false,
+        false,
+        false,
+        true,
+        true,
         None,
         Some(100000),
         None,
@@ -61,7 +133,7 @@ fn integration_detailed_standard() {
 }
 
 #[test]
-fn integration_niceonly_b120() {
+fn integration_niceonly_natural_b120() {
     nice_rust::run(
         nice_rust::Mode::Niceonly,
         "https://nicenumbers.net/api".to_string(),
@@ -69,6 +141,8 @@ fn integration_niceonly_b120() {
         false,
         false,
         false,
+        true,
+        true,
         Some(120),
         Some(1000000),
         None,
@@ -76,7 +150,7 @@ fn integration_niceonly_b120() {
 }
 
 #[test]
-fn integration_detailed_b120() {
+fn integration_detailed_natural_b120() {
     nice_rust::run(
         nice_rust::Mode::Detailed,
         "https://nicenumbers.net/api".to_string(),
@@ -84,6 +158,8 @@ fn integration_detailed_b120() {
         false,
         false,
         false,
+        true,
+        true,
         Some(120),
         Some(100000),
         None,

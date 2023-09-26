@@ -36,10 +36,11 @@ pub fn get_field_benchmark(base: Option<u32>, range: Option<u32>) -> FieldClaim 
 /// Build a field request url.
 fn get_claim_url(
     mode: &Mode,
+    high_bases: &bool,
     api_base: &str,
     username: &str,
     base: &Option<u32>,
-    max_range: &Option<u32>,
+    range: &Option<u32>,
     field: &Option<u32>,
 ) -> String {
     let mut query_url = api_base.to_owned();
@@ -51,27 +52,32 @@ fn get_claim_url(
     if let Some(base_val) = base {
         query_url += &("&base=".to_owned() + &base_val.to_string());
     }
-    if let Some(max_range_val) = max_range {
-        query_url += &("&max_range=".to_owned() + &max_range_val.to_string());
+    if let Some(range_val) = range {
+        query_url += &("&max_range=".to_owned() + &range_val.to_string());
     }
     if let Some(field_id_val) = field {
         query_url += &("&field=".to_owned() + &field_id_val.to_string());
     }
-    query_url += &("&max_base=".to_owned() + &MAX_SUPPORTED_BASE.to_string());
+    query_url += &("&max_base=".to_owned());
+    match high_bases {
+        false => query_url += &(MAX_SUPPORTED_BASE_NORMAL.to_string()),
+        true => query_url += &(MAX_SUPPORTED_BASE_HIGH.to_string()),
+    };
     query_url
 }
 
 /// Request a field from the server. Supplies CLI options as query strings.
 pub fn get_field_from_server(
     mode: &Mode,
+    high_bases: &bool,
     api_base: &str,
     username: &str,
     base: &Option<u32>,
-    max_range: &Option<u32>,
+    range: &Option<u32>,
     field: &Option<u32>,
 ) -> FieldClaim {
     let response = reqwest::blocking::get(&get_claim_url(
-        mode, api_base, username, base, max_range, field,
+        mode, high_bases, api_base, username, base, range, field,
     ))
     .unwrap_or_else(|e| panic!("Error: {}", e));
     match response.json::<FieldClaim>() {
@@ -115,6 +121,7 @@ mod tests {
         assert_eq!(
             get_claim_url(
                 &Mode::Detailed,
+                &false,
                 "https://nicenumbers.net/api",
                 "anonymous",
                 &None,
@@ -122,11 +129,12 @@ mod tests {
                 &None
             ),
             "https://nicenumbers.net/api/claim/detailed?username=anonymous&max_base=".to_string()
-                + &MAX_SUPPORTED_BASE.to_string()
+                + &MAX_SUPPORTED_BASE_NORMAL.to_string()
         );
         assert_eq!(
             get_claim_url(
                 &Mode::Niceonly,
+                &false,
                 "https://nicenumbers.net/api",
                 "anonymous",
                 &None,
@@ -134,11 +142,25 @@ mod tests {
                 &None
             ),
             "https://nicenumbers.net/api/claim/niceonly?username=anonymous&max_base=".to_string()
-                + &MAX_SUPPORTED_BASE.to_string()
+                + &MAX_SUPPORTED_BASE_NORMAL.to_string()
+        );
+        assert_eq!(
+            get_claim_url(
+                &Mode::Niceonly,
+                &true,
+                "https://nicenumbers.net/api",
+                "anonymous",
+                &None,
+                &None,
+                &None
+            ),
+            "https://nicenumbers.net/api/claim/niceonly?username=anonymous&max_base=".to_string()
+                + &MAX_SUPPORTED_BASE_HIGH.to_string()
         );
         assert_eq!(
             get_claim_url(
                 &Mode::Detailed,
+                &true,
                 "https://nicenumbers.net/api",
                 "anonymous",
                 &Some(120),
@@ -147,11 +169,12 @@ mod tests {
             ),
             "https://nicenumbers.net/api/claim/detailed?username=anonymous&base=120&max_base="
                 .to_string()
-                + &MAX_SUPPORTED_BASE.to_string()
+                + &MAX_SUPPORTED_BASE_HIGH.to_string()
         );
         assert_eq!(
             get_claim_url(
                 &Mode::Detailed,
+                &true,
                 "https://nicenumbers.net/api",
                 "anonymous",
                 &None,
@@ -159,11 +182,12 @@ mod tests {
                 &None
             ),
             "https://nicenumbers.net/api/claim/detailed?username=anonymous&max_range=1000000&max_base=".to_string()
-                + &MAX_SUPPORTED_BASE.to_string()
+                + &MAX_SUPPORTED_BASE_HIGH.to_string()
         );
         assert_eq!(
             get_claim_url(
                 &Mode::Detailed,
+                &true,
                 "https://nicenumbers.net/api",
                 "anonymous",
                 &None,
@@ -172,11 +196,12 @@ mod tests {
             ),
             "https://nicenumbers.net/api/claim/detailed?username=anonymous&field=123456&max_base="
                 .to_string()
-                + &MAX_SUPPORTED_BASE.to_string()
+                + &MAX_SUPPORTED_BASE_HIGH.to_string()
         );
         assert_eq!(
             get_claim_url(
                 &Mode::Niceonly,
+                &true,
                 "https://nicenumbers.net/api",
                 "anonymous",
                 &Some(120),
@@ -185,7 +210,7 @@ mod tests {
             ),
             "https://nicenumbers.net/api/claim/niceonly?username=anonymous".to_string()
                 + &"&base=120&max_range=1000000&field=123456&max_base=".to_string()
-                + &MAX_SUPPORTED_BASE.to_string()
+                + &MAX_SUPPORTED_BASE_HIGH.to_string()
         );
     }
 
