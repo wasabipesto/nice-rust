@@ -23,59 +23,75 @@ jobs:
         platform:
 
           - build_name: Linux-x86_64
-            os: ubuntu-20.04
+            os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            use_cache: true
             save_output: true
 
           - build_name: Linux-x86_64-musl
-            os: ubuntu-20.04
+            os: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            use_cache: true
             save_output: false
 
           - build_name: Linux-aarch64
-            os: ubuntu-20.04
+            os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            use_cache: true
             save_output: true
 
           - build_name: Linux-aarch64-musl
-            os: ubuntu-20.04
+            os: ubuntu-latest
             target: aarch64-unknown-linux-musl
+            use_cache: true
             save_output: false
 
           - build_name: Linux-armv7
-            os: ubuntu-20.04
+            os: ubuntu-latest
             target: armv7-unknown-linux-gnueabihf
+            use_cache: true
             save_output: true
 
           - build_name: Linux-arm-musl
-            os: ubuntu-20.04
+            os: ubuntu-latest
             target: arm-unknown-linux-musleabi
+            use_cache: true
             save_output: false
 
           - build_name: Linux-riscv64gc
-            os: ubuntu-20.04
+            os: ubuntu-latest
             target: riscv64gc-unknown-linux-gnu
+            use_cache: true
             save_output: false
 
           - build_name: Windows-x86_64
             os: windows-latest
-            target: x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-gnu
+            use_cache: false
             save_output: true
+
+          - build_name: Windows-x86_64-msvc
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            use_cache: false
+            save_output: false
 
           - build_name: Darwin-x86_64
             os: macOS-latest
             target: x86_64-apple-darwin
+            use_cache: true
             save_output: true
 
     steps:
       - uses: actions/checkout@v4
       
       - name: Cache cargo & target directories
+        if: ${{ matrix.platform.use_cache }}
         uses: Swatinem/rust-cache@v2
       
       - name: Install musl-tools on Linux
-        run: sudo apt-get update --yes && sudo apt-get install --yes musl-tools
         if: contains(matrix.platform.target, 'musl')
+        run: sudo apt-get update --yes && sudo apt-get install --yes musl-tools
       
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v0
@@ -95,7 +111,7 @@ jobs:
           args: "--locked --release"
       
       - name: Package as archive (Linux)
-        if: ${{ matrix.platform.save_output && matrix.platform.os != 'windows-latest' }}
+        if: ${{ matrix.platform.save_output && !contains(matrix.platform.os, 'windows') }}
         id: archive_linux
         shell: bash
         run: |
@@ -107,7 +123,7 @@ jobs:
           cd -
       
       - name: Package as archive (Windows)
-        if: ${{ matrix.platform.save_output && matrix.platform.os == 'windows-latest' }}
+        if: ${{ matrix.platform.save_output && contains(matrix.platform.os, 'windows') }}
         id: archive_windows
         shell: pwsh
         run: |
@@ -122,6 +138,6 @@ jobs:
         if: ${{ matrix.platform.save_output }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.platform.os == 'windows-latest' && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
+          name: ${{ contains(matrix.platform.os, 'windows') && steps.archive_windows.outputs.filename || steps.archive_linux.outputs.filename }}
           path: "${{ env.OUTPUT_PREFIX }}-*"
-          retention-days: 30
+          retention-days: 14
